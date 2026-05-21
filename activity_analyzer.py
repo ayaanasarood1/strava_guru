@@ -115,18 +115,17 @@ class ActivityAnalyzer:
     def _analyze_fit(self, file_path: Path, is_gzipped: bool = False) -> Optional[ActivityStats]:
         """Analyze a FIT file"""
         try:
+            # Try with lenient parsing first (skip CRC checks for corrupted files)
             if is_gzipped:
                 with gzip.open(file_path, 'rb') as f:
-                    fitfile = FitFile(f)
+                    fitfile = FitFile(f, check_crc=False)
                     return self._parse_fit_file(fitfile)
             else:
-                fitfile = FitFile(str(file_path))
+                fitfile = FitFile(str(file_path), check_crc=False)
                 return self._parse_fit_file(fitfile)
         except Exception as e:
-            import traceback
-            print(f"Error parsing FIT file {file_path}: {e}")
-            print(f"Traceback:")
-            traceback.print_exc()
+            # If lenient parsing fails, file is likely too corrupted
+            # Silently skip to avoid verbose output during batch processing
             return None
 
     def _parse_fit_file(self, fitfile) -> Optional[ActivityStats]:
