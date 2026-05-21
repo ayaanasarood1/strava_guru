@@ -1,0 +1,291 @@
+[
+  {
+    "race_id": "marathon_20120318",
+    "runner_id": "runner_2",
+    "race_date": "2012-03-18",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 256.8,
+    "features": {
+      "total_weekly_mileage": 13.359757208959367,
+      "peak_weekly_mileage": 37.226751339058254,
+      "long_run_distance": 16.31103433705743,
+      "total_runs": 32,
+      "runs_per_week": 2.6666666666666665,
+      "avg_hr": 0,
+      "avg_pace": 8.158372301433019,
+      "num_long_runs": 2
+    }
+  },
+  {
+    "race_id": "marathon_20160214",
+    "runner_id": "runner_2",
+    "race_date": "2016-02-14",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 231.6,
+    "features": {
+      "total_weekly_mileage": 25.50334816342932,
+      "peak_weekly_mileage": 39.11914200852524,
+      "long_run_distance": 20.2125716132079,
+      "total_runs": 44,
+      "runs_per_week": 3.6666666666666665,
+      "avg_hr": 158.0,
+      "avg_pace": 7.989704011411533,
+      "num_long_runs": 8
+    }
+  },
+  {
+    "race_id": "marathon_20200308",
+    "runner_id": "runner_2",
+    "race_date": "2020-03-08",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 239.9,
+    "features": {
+      "total_weekly_mileage": 21.137655809213715,
+      "peak_weekly_mileage": 34.19227757962892,
+      "long_run_distance": 22.199721625013982,
+      "total_runs": 33,
+      "runs_per_week": 2.75,
+      "avg_hr": 0,
+      "avg_pace": 8.918125587894322,
+      "num_long_runs": 8
+    }
+  },
+  {
+    "race_id": "marathon_20201017",
+    "runner_id": "runner_2",
+    "race_date": "2020-10-17",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 219.9,
+    "features": {
+      "total_weekly_mileage": 33.150546186635516,
+      "peak_weekly_mileage": 49.18848720593535,
+      "long_run_distance": 20.192190587445786,
+      "total_runs": 51,
+      "runs_per_week": 4.25,
+      "avg_hr": 144.94117647058823,
+      "avg_pace": 8.782653563966722,
+      "num_long_runs": 13
+    }
+  },
+  {
+    "race_id": "marathon_20210919",
+    "runner_id": "runner_2",
+    "race_date": "2021-09-19",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 200.9,
+    "features": {
+      "total_weekly_mileage": 48.063414194638796,
+      "peak_weekly_mileage": 58.23865684069247,
+      "long_run_distance": 22.189655386680254,
+      "total_runs": 70,
+      "runs_per_week": 5.833333333333333,
+      "avg_hr": 141.32857142857142,
+      "avg_pace": 8.66429224709676,
+      "num_long_runs": 12
+    }
+  },
+  {
+    "race_id": "marathon_20211107",
+    "runner_id": "runner_2",
+    "race_date": "2021-11-07",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 191.7,
+    "features": {
+      "total_weekly_mileage": 40.894036271597884,
+      "peak_weekly_mileage": 63.524736848646036,
+      "long_run_distance": 26.524289460275643,
+      "total_runs": 57,
+      "runs_per_week": 4.75,
+      "avg_hr": 138.9298245614035,
+      "avg_pace": 8.883036212825404,
+      "num_long_runs": 13
+    }
+  },
+  {
+    "race_id": "marathon_20220306",
+    "runner_id": "runner_2",
+    "race_date": "2022-03-06",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 186.1,
+    "features": {
+      "total_weekly_mileage": 46.08559513009474,
+      "peak_weekly_mileage": 71.03141660556501,
+      "long_run_distance": 20.89359613257609,
+      "total_runs": 70,
+      "runs_per_week": 5.833333333333333,
+      "avg_hr": 139.17391304347825,
+      "avg_pace": 8.859011307462442,
+      "num_long_runs": 17
+    }
+  },
+  {
+    "race_id": "marathon_20221009",
+    "runner_id": "runner_2",
+    "race_date": "2022-10-09",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 210.1,
+    "features": {
+      "total_weekly_mileage": 34.01299601078703,
+      "peak_weekly_mileage": 47.9287782569252,
+      "long_run_distance": 27.64686144630718,
+      "total_runs": 53,
+      "runs_per_week": 4.416666666666667,
+      "avg_hr": 142.1764705882353,
+      "avg_pace": 8.711619009190983,
+      "num_long_runs": 10
+    }
+  },
+  {
+    "race_id": "marathon_20230507",
+    "runner_id": "runner_2",
+    "race_date": "2023-05-07",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 191.6,
+    "features": {
+      "total_weekly_mileage": 35.95949788940394,
+      "peak_weekly_mileage": 54.0223321361552,
+      "long_run_distance": 28.754023388469808,
+      "total_runs": 61,
+      "runs_per_week": 5.083333333333333,
+      "avg_hr": 141.04918032786884,
+      "avg_pace": 9.091356179740442,
+      "num_long_runs": 10
+    }
+  },
+  {
+    "race_id": "marathon_20230730",
+    "runner_id": "runner_2",
+    "race_date": "2023-07-30",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 184.7,
+    "features": {
+      "total_weekly_mileage": 28.88960174150066,
+      "peak_weekly_mileage": 47.810593162414406,
+      "long_run_distance": 26.605813563324098,
+      "total_runs": 54,
+      "runs_per_week": 4.5,
+      "avg_hr": 137.16666666666666,
+      "avg_pace": 10.35178605507845,
+      "num_long_runs": 7
+    }
+  },
+  {
+    "race_id": "marathon_20231008",
+    "runner_id": "runner_2",
+    "race_date": "2023-10-08",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 200.3,
+    "features": {
+      "total_weekly_mileage": 38.04239108371548,
+      "peak_weekly_mileage": 62.31759603315645,
+      "long_run_distance": 26.399331402935367,
+      "total_runs": 64,
+      "runs_per_week": 5.333333333333333,
+      "avg_hr": 136.515625,
+      "avg_pace": 11.303739503025449,
+      "num_long_runs": 12
+    }
+  },
+  {
+    "race_id": "marathon_20231118",
+    "runner_id": "runner_2",
+    "race_date": "2023-11-18",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 187.3,
+    "features": {
+      "total_weekly_mileage": 38.00362778116081,
+      "peak_weekly_mileage": 53.47098810692583,
+      "long_run_distance": 26.850013048827474,
+      "total_runs": 61,
+      "runs_per_week": 5.083333333333333,
+      "avg_hr": 138.40983606557376,
+      "avg_pace": 11.315136091099848,
+      "num_long_runs": 13
+    }
+  },
+  {
+    "race_id": "marathon_20240727",
+    "runner_id": "runner_2",
+    "race_date": "2024-07-27",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 177.9,
+    "features": {
+      "total_weekly_mileage": 54.83998098599426,
+      "peak_weekly_mileage": 76.18725688791679,
+      "long_run_distance": 24.038798513676415,
+      "total_runs": 82,
+      "runs_per_week": 6.833333333333333,
+      "avg_hr": 138.90243902439025,
+      "avg_pace": 9.057101045421073,
+      "num_long_runs": 21
+    }
+  },
+  {
+    "race_id": "marathon_20241208",
+    "runner_id": "runner_2",
+    "race_date": "2024-12-08",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 175.9,
+    "features": {
+      "total_weekly_mileage": 62.43899673157941,
+      "peak_weekly_mileage": 74.01102315234817,
+      "long_run_distance": 24.22048790187282,
+      "total_runs": 84,
+      "runs_per_week": 7.0,
+      "avg_hr": 136.89156626506025,
+      "avg_pace": 8.811541077956344,
+      "num_long_runs": 31
+    }
+  },
+  {
+    "race_id": "marathon_20250421",
+    "runner_id": "runner_2",
+    "race_date": "2025-04-21",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 199.3,
+    "features": {
+      "total_weekly_mileage": 53.00089374111955,
+      "peak_weekly_mileage": 62.67966992680229,
+      "long_run_distance": 26.221308113885197,
+      "total_runs": 78,
+      "runs_per_week": 6.5,
+      "avg_hr": 134.76923076923077,
+      "avg_pace": 9.264002554697042,
+      "num_long_runs": 15
+    }
+  },
+  {
+    "race_id": "marathon_20250727",
+    "runner_id": "runner_2",
+    "race_date": "2025-07-27",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 175.4,
+    "features": {
+      "total_weekly_mileage": 69.2792438722292,
+      "peak_weekly_mileage": 86.91215032249247,
+      "long_run_distance": 29.753252886276364,
+      "total_runs": 88,
+      "runs_per_week": 7.333333333333333,
+      "avg_hr": 137.30232558139534,
+      "avg_pace": 8.836452569853467,
+      "num_long_runs": 39
+    }
+  },
+  {
+    "race_id": "marathon_20251012",
+    "runner_id": "runner_2",
+    "race_date": "2025-10-12",
+    "race_distance_miles": 26.2,
+    "actual_time_minutes": 176.7,
+    "features": {
+      "total_weekly_mileage": 58.496567951251244,
+      "peak_weekly_mileage": 79.05793679396524,
+      "long_run_distance": 26.27847440565698,
+      "total_runs": 78,
+      "runs_per_week": 6.5,
+      "avg_hr": 136.8846153846154,
+      "avg_pace": 8.740419824421929,
+      "num_long_runs": 28
+    }
+  }
+]
