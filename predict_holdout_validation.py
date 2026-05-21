@@ -6,6 +6,7 @@ Train on all races except the last one for each runner
 
 import json
 import numpy as np
+from pathlib import Path
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import Ridge, Lasso
 from sklearn.model_selection import cross_val_score
@@ -16,8 +17,9 @@ def main():
     print("Holdout Validation: Predicting Most Recent Marathons")
     print("="*80)
 
-    # Load dataset
-    dataset_path = '/Users/osman/.strava_guru_cache/race_data/combined_41_features.json'
+    # Load dataset (relative to script location)
+    script_dir = Path(__file__).parent
+    dataset_path = script_dir / 'race_data' / 'combined_41_features.json'
     with open(dataset_path, 'r') as f:
         all_races = json.load(f)
 
