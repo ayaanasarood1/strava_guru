@@ -12,6 +12,12 @@ from sklearn.linear_model import Ridge, Lasso
 from sklearn.model_selection import cross_val_score
 from datetime import datetime
 
+def format_time(minutes):
+    """Format minutes as H:MM"""
+    hours = int(minutes // 60)
+    mins = int(minutes % 60)
+    return f"{hours}:{mins:02d}"
+
 def main():
     print("="*80)
     print("Holdout Validation: Predicting Most Recent Marathons")
@@ -26,44 +32,58 @@ def main():
     print(f"\nLoaded {len(all_races)} total races")
 
     # Filter out bonked races
-    bonked_ids = ['marathon_20251012', 'marathon_20231008']
+    bonked_ids = ['marathon_20251012', 'marathon_20231008', 'sara_marathon_20240623']  # Include Sara's 4:30 training run
     clean_races = [r for r in all_races if r['race_id'] not in bonked_ids]
 
-    print(f"Clean races: {len(clean_races)}")
+    print(f"Clean races (excluding bonked): {len(clean_races)}")
 
-    # Separate by runner
-    your_races = [r for r in clean_races if r['runner_id'] == 'my_runner']
-    salman_races = [r for r in clean_races if r['runner_id'] == 'runner_2']
+    # Get unique runners
+    runner_ids = sorted(set(r['runner_id'] for r in clean_races))
+    runner_names = {
+        'my_runner': 'Osman',
+        'runner_2': 'Salman',
+        'runner_3': 'Azeem',
+        'runner_sara': 'Sara'
+    }
 
-    # Sort by date
-    your_races.sort(key=lambda x: x['race_date'])
-    salman_races.sort(key=lambda x: x['race_date'])
+    print(f"\nRunners: {len(runner_ids)}")
 
-    print(f"\nYour races: {len(your_races)}")
-    print(f"Salman's races: {len(salman_races)}")
+    # Separate by runner and sort by date
+    runners_data = {}
+    for runner_id in runner_ids:
+        races = [r for r in clean_races if r['runner_id'] == runner_id]
+        races.sort(key=lambda x: x['race_date'])
+        runners_data[runner_id] = races
+        name = runner_names.get(runner_id, runner_id)
+        print(f"  {name}: {len(races)} races")
 
-    # Identify most recent for each
-    your_holdout = your_races[-1]
-    salman_holdout = salman_races[-1]
+    # Identify holdout (most recent) for each runner
+    holdouts = {}
+    training_races = []
 
     print(f"\n{'='*80}")
     print("Holdout Races (will predict these):")
     print(f"{'='*80}")
-    print(f"\nYour most recent:")
-    print(f"  Date: {your_holdout['race_date']}")
-    print(f"  Actual time: {int(your_holdout['actual_time_minutes']//60)}:{int(your_holdout['actual_time_minutes']%60):02d}")
 
-    print(f"\nSalman's most recent:")
-    print(f"  Date: {salman_holdout['race_date']}")
-    print(f"  Actual time: {int(salman_holdout['actual_time_minutes']//60)}:{int(salman_holdout['actual_time_minutes']%60):02d}")
+    for runner_id, races in runners_data.items():
+        if len(races) < 2:
+            print(f"\n{runner_names.get(runner_id, runner_id)}: Skipping (only {len(races)} race)")
+            training_races.extend(races)
+            continue
 
-    # Training set: everything except the holdouts
-    training_races = your_races[:-1] + salman_races[:-1]
+        holdout = races[-1]
+        holdouts[runner_id] = holdout
+        training_races.extend(races[:-1])
+
+        name = runner_names.get(runner_id, runner_id)
+        print(f"\n{name}'s most recent:")
+        print(f"  Date: {holdout['race_date'][:10]}")
+        print(f"  Race: {holdout.get('race_name', 'Marathon')}")
+        print(f"  Actual time: {format_time(holdout['actual_time_minutes'])}")
 
     print(f"\n{'='*80}")
-    print(f"Training on {len(training_races)} races:")
-    print(f"  Your training races: {len(your_races) - 1}")
-    print(f"  Salman's training races: {len(salman_races) - 1}")
+    print(f"Training on {len(training_races)} races")
+    print(f"Holding out {len(holdouts)} races for validation")
     print(f"{'='*80}")
 
     # Extract features for training
@@ -89,7 +109,7 @@ def main():
     print(f"\nTraining set shape: {X_train.shape}")
     print(f"Features: {len(feature_names)}")
 
-    # Train models with cross-validation on training set
+    # Train models with cross-validation
     print(f"\n{'='*80}")
     print("Training Models (5-Fold CV on training set)")
     print(f"{'='*80}")
@@ -107,7 +127,7 @@ def main():
         cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='neg_mean_absolute_error')
         mae = -cv_scores.mean()
         results[name] = {'mae': mae, 'model': model}
-        print(f"\n{name}: MAE = {mae:.2f} min ({mae//60}:{int(mae%60):02d})")
+        print(f"\n{name}: MAE = {mae:.2f} min ({format_time(mae)})")
 
     # Best model
     best_name = min(results.keys(), key=lambda k: results[k]['mae'])
@@ -121,67 +141,73 @@ def main():
     # Train best model on all training data
     best_model.fit(X_train, y_train)
 
-    # Extract features for holdout races
-    your_features = [your_holdout['features'].get(k, 0) or 0 for k in feature_names]
-    salman_features = [salman_holdout['features'].get(k, 0) or 0 for k in feature_names]
-
-    # Make predictions
-    your_prediction = best_model.predict([your_features])[0]
-    salman_prediction = best_model.predict([salman_features])[0]
-
-    # Show results
+    # Make predictions for each holdout
     print(f"\n{'='*80}")
     print("PREDICTIONS vs ACTUAL")
     print(f"{'='*80}")
 
-    print(f"\nYour Marathon ({your_holdout['race_date']}):")
-    print(f"  Predicted: {int(your_prediction//60)}:{int(your_prediction%60):02d} ({your_prediction:.1f} min)")
-    print(f"  Actual:    {int(your_holdout['actual_time_minutes']//60)}:{int(your_holdout['actual_time_minutes']%60):02d} ({your_holdout['actual_time_minutes']:.1f} min)")
-    your_error = abs(your_prediction - your_holdout['actual_time_minutes'])
-    print(f"  Error:     {your_error:.1f} minutes ({'+' if your_prediction > your_holdout['actual_time_minutes'] else ''}{your_prediction - your_holdout['actual_time_minutes']:.1f})")
+    total_error = 0
+    predictions = []
 
-    print(f"\nSalman's Marathon ({salman_holdout['race_date']}):")
-    print(f"  Predicted: {int(salman_prediction//60)}:{int(salman_prediction%60):02d} ({salman_prediction:.1f} min)")
-    print(f"  Actual:    {int(salman_holdout['actual_time_minutes']//60)}:{int(salman_holdout['actual_time_minutes']%60):02d} ({salman_holdout['actual_time_minutes']:.1f} min)")
-    salman_error = abs(salman_prediction - salman_holdout['actual_time_minutes'])
-    print(f"  Error:     {salman_error:.1f} minutes ({'+' if salman_prediction > salman_holdout['actual_time_minutes'] else ''}{salman_prediction - salman_holdout['actual_time_minutes']:.1f})")
+    for runner_id, holdout in holdouts.items():
+        name = runner_names.get(runner_id, runner_id)
+        features = [holdout['features'].get(k, 0) or 0 for k in feature_names]
+        prediction = best_model.predict([features])[0]
+        actual = holdout['actual_time_minutes']
+        error = abs(prediction - actual)
+        total_error += error
+
+        predictions.append({
+            'name': name,
+            'date': holdout['race_date'][:10],
+            'race_name': holdout.get('race_name', 'Marathon'),
+            'predicted': prediction,
+            'actual': actual,
+            'error': error,
+            'diff': prediction - actual
+        })
+
+        print(f"\n{name}'s Marathon ({holdout['race_date'][:10]}):")
+        print(f"  Race: {holdout.get('race_name', 'Marathon')}")
+        print(f"  Predicted: {format_time(prediction)} ({prediction:.1f} min)")
+        print(f"  Actual:    {format_time(actual)} ({actual:.1f} min)")
+        sign = '+' if prediction > actual else ''
+        print(f"  Error:     {error:.1f} minutes ({sign}{prediction - actual:.1f})")
+
+    # Summary
+    avg_error = total_error / len(holdouts) if holdouts else 0
 
     print(f"\n{'='*80}")
     print("Validation Summary")
     print(f"{'='*80}")
-    print(f"  Average prediction error: {(your_error + salman_error) / 2:.1f} minutes")
+    print(f"  Runners validated: {len(holdouts)}")
+    print(f"  Average prediction error: {avg_error:.1f} minutes")
     print(f"  Model CV MAE on training: {results[best_name]['mae']:.1f} minutes")
-    print(f"  Actual holdout MAE: {(your_error + salman_error) / 2:.1f} minutes")
 
-    if (your_error + salman_error) / 2 < results[best_name]['mae'] * 1.5:
+    if avg_error < results[best_name]['mae'] * 1.5:
         print(f"\n  ✓ Model generalizes well! Holdout error within expected range.")
     else:
         print(f"\n  ⚠ Model may be overfitting. Holdout error higher than expected.")
 
-    # Show key training metrics for context
+    # Results table
     print(f"\n{'='*80}")
-    print("Training Context for Predictions")
+    print("Results Table")
     print(f"{'='*80}")
+    print(f"\n{'Runner':<10} {'Race':<25} {'Predicted':<10} {'Actual':<10} {'Error':<10}")
+    print("-" * 70)
+    for p in predictions:
+        race_short = p['race_name'][:23] if len(p['race_name']) > 23 else p['race_name']
+        print(f"{p['name']:<10} {race_short:<25} {format_time(p['predicted']):<10} {format_time(p['actual']):<10} {p['error']:.1f} min")
 
-    # Your most recent training
-    your_last_training = your_races[-2] if len(your_races) > 1 else your_races[0]
-    print(f"\nYour previous marathon ({your_last_training['race_date']}):")
-    print(f"  Time: {int(your_last_training['actual_time_minutes']//60)}:{int(your_last_training['actual_time_minutes']%60):02d}")
-    your_features_dict = your_holdout['features']
-    print(f"  Your recent training:")
-    print(f"    Weekly mileage: {your_features_dict.get('total_weekly_mileage', 0):.1f} mi/week")
-    print(f"    Zone 1%: {your_features_dict.get('zone1_percent', 0):.1f}%")
-    print(f"    Quality workouts%: {your_features_dict.get('quality_workout_percent', 0):.1f}%")
-
-    # Salman's most recent training
-    salman_last_training = salman_races[-2] if len(salman_races) > 1 else salman_races[0]
-    print(f"\nSalman's previous marathon ({salman_last_training['race_date']}):")
-    print(f"  Time: {int(salman_last_training['actual_time_minutes']//60)}:{int(salman_last_training['actual_time_minutes']%60):02d}")
-    salman_features_dict = salman_holdout['features']
-    print(f"  Salman's recent training:")
-    print(f"    Weekly mileage: {salman_features_dict.get('total_weekly_mileage', 0):.1f} mi/week")
-    print(f"    Zone 1%: {salman_features_dict.get('zone1_percent', 0):.1f}%")
-    print(f"    Quality workouts%: {salman_features_dict.get('quality_workout_percent', 0):.1f}%")
+    # Feature importance (if tree-based model)
+    if hasattr(best_model, 'feature_importances_'):
+        print(f"\n{'='*80}")
+        print("Top 10 Most Important Features")
+        print(f"{'='*80}")
+        importances = best_model.feature_importances_
+        indices = np.argsort(importances)[::-1][:10]
+        for i, idx in enumerate(indices, 1):
+            print(f"  {i:2d}. {feature_names[idx]:<35}: {importances[idx]*100:.1f}%")
 
 if __name__ == '__main__':
     main()
