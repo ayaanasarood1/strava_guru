@@ -43,7 +43,8 @@ def main():
         'my_runner': 'Osman',
         'runner_2': 'Salman',
         'runner_3': 'Azeem',
-        'runner_sara': 'Sara'
+        'runner_sara': 'Sara',
+        'runner_qazi': 'Qazi'
     }
 
     print(f"\nRunners: {len(runner_ids)}")
