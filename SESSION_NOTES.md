@@ -22,20 +22,22 @@ This file tracks conversation context so Claude can pick up where we left off.
 
 ### Current Model Performance
 - **Best Model:** Random Forest
-- **CV MAE:** ±12.0 minutes
-- **Holdout MAE:** ±7.0 minutes (4 runners)
-- **Dataset:** 40 marathons, 4 runners
-- **Top Features:** Weekly mileage (23%), runs/week (15%), consistency (8%)
+- **CV MAE:** ±11.2 minutes
+- **Holdout MAE:** ±6.5 minutes (5 races, 4 runners)
+- **Dataset:** 40 marathons, 4 runners (30 training, 5 holdout)
+- **Top Features:** Weekly mileage (20%), runs/week (15%), consistency (10%)
 
-### Holdout Predictions (4 runners)
+### Holdout Predictions (5 races, 4 runners)
 | Runner | Race | Predicted | Actual | Error |
 |--------|------|-----------|--------|-------|
-| Osman | Dec 2024 Marathon | 3:12 | 3:22 | 10.4 min |
-| Salman | Jack & Jill 2025 | 3:04 | 2:55 | 9.2 min |
-| Azeem | Houston 2026 | 3:23 | 3:22 | 1.1 min |
-| Sara | London 2026 | 3:29 | 3:22 | 7.2 min |
+| Osman | Dec 2024 Marathon | 3:12 | 3:22 | 9.8 min |
+| Salman | Jack & Jill 2025 | 3:04 | 2:55 | 8.9 min |
+| Azeem | Houston 2026 | 3:23 | 3:22 | 1.5 min |
+| Sara | Boston 2025 | 3:29 | 3:24 | 5.0 min |
+| Sara | London 2026 | 3:29 | 3:22 | 7.1 min |
 
-**Average error: 7.0 minutes** (improved from 21.5 with Sara's data)
+**Average error: 6.5 minutes**
+Note: Sara is only female runner - sex_encoded feature present but needs more female data
 
 ---
 
