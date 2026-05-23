@@ -14,23 +14,28 @@ This file tracks conversation context so Claude can pick up where we left off.
 3. **ML Models** - Ridge, Lasso, Random Forest, GBM, XGBoost
 4. **Prediction** - Race time estimates from current training
 
-### Runners in Dataset
-- **You (Osman)** - Primary user
-- **Salman** - Additional runner with marathon data
-- **Azeem** - Additional runner (some data available)
+### Runners in Dataset (40 marathons total)
+- **Osman** - 7 marathons
+- **Salman** - 17 marathons
+- **Azeem** - 5 marathons
+- **Sara** - 11 marathons (female runner, added May 2026)
 
 ### Current Model Performance
-- **Weather-Aware Model MAE:** ±11.5 minutes (vs ±16.6 without weather)
-- **Top Feature:** Apparent temperature (17.8% importance)
-- **Dataset:** 15 races with weather data
-- **Temperature Impact:** +10°F adds ~4 minutes to marathon time
+- **Best Model:** Random Forest
+- **CV MAE:** ±12.0 minutes
+- **Holdout MAE:** ±7.0 minutes (4 runners)
+- **Dataset:** 40 marathons, 4 runners
+- **Top Features:** Weekly mileage (23%), runs/week (15%), consistency (8%)
 
-### Holdout Predictions (from last session)
+### Holdout Predictions (4 runners)
 | Runner | Race | Predicted | Actual | Error |
 |--------|------|-----------|--------|-------|
-| Osman | Dec 2024 Marathon | 3:15 | 3:22 | 7 min |
-| Salman | Jack & Jill 2025 | 3:03 | 2:55 | 8 min |
-| Azeem | Houston 2026 | ? | ? | no weather |
+| Osman | Dec 2024 Marathon | 3:12 | 3:22 | 10.4 min |
+| Salman | Jack & Jill 2025 | 3:04 | 2:55 | 9.2 min |
+| Azeem | Houston 2026 | 3:23 | 3:22 | 1.1 min |
+| Sara | London 2026 | 3:29 | 3:22 | 7.2 min |
+
+**Average error: 7.0 minutes** (improved from 21.5 with Sara's data)
 
 ---
 
@@ -59,12 +64,17 @@ This file tracks conversation context so Claude can pick up where we left off.
 
 ## Session Log
 
-### 2026-05-20 - Current Session
+### 2026-05-23 - Added Sara (4th runner)
+- Processed Sara's Strava export (1004 runs, 11 marathons)
+- Built cache from CSV, extracted features
+- Updated holdout validation to support all runners dynamically
+- Model accuracy improved: 7.0 min avg error (was 21.5)
+- Best model: Random Forest, CV MAE 12 min
+
+### 2026-05-20 - Session Recovery
 - User frustrated about lost context (no memory between sessions)
 - Read all summary files to restore context
 - Created this SESSION_NOTES.md file for future reference
-
-**TODO:** Ask user what they want to work on next
 
 ---
 
