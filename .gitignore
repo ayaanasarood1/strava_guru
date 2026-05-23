@@ -30,3 +30,18 @@ charts/
 # Environment variables
 .env
 .env.local
+
+# Intermediate data files
+likely_races.json
+marathon_races.json
+marathon_recent.json
+my_actual_marathons.json
+my_race_results.json
+recent_races.json
+runner2_marathons.json
+sample_race_results.json
+strava_races.json
+synthetic_race_results.json
+
+# Model files in root (keep huggingface_app/model.pkl)
+race_time_model_*.pkl
