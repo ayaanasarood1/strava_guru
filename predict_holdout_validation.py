@@ -102,6 +102,27 @@ def main():
                 print(f"     Actual time: {format_time(races[-1]['actual_time_minutes'])}")
                 continue
 
+        # For Qazi, hold out Philadelphia (his only actual race)
+        if runner_id == 'runner_qazi':
+            philly_idx = None
+            for i, r in enumerate(races):
+                if 'Philadelphia' in r.get('race_name', '') or r['actual_time_minutes'] < 250:
+                    philly_idx = i
+                    break
+
+            if philly_idx is not None:
+                holdouts[runner_id] = races[philly_idx]
+                for i, r in enumerate(races):
+                    if i != philly_idx:
+                        training_races.append(r)
+
+                print(f"\n{name}'s holdout (actual race):")
+                print(f"  Date: {races[philly_idx]['race_date'][:10]}")
+                print(f"  Race: {races[philly_idx].get('race_name', 'Marathon')}")
+                print(f"  Actual time: {format_time(races[philly_idx]['actual_time_minutes'])}")
+                print(f"  Training runs used: {len(races) - 1}")
+                continue
+
         # Default: hold out most recent
         holdout = races[-1]
         holdouts[runner_id] = holdout

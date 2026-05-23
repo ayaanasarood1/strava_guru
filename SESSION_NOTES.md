@@ -14,30 +14,32 @@ This file tracks conversation context so Claude can pick up where we left off.
 3. **ML Models** - Ridge, Lasso, Random Forest, GBM, XGBoost
 4. **Prediction** - Race time estimates from current training
 
-### Runners in Dataset (40 marathons total)
+### Runners in Dataset (41 marathons total)
 - **Osman** - 7 marathons
 - **Salman** - 17 marathons
 - **Azeem** - 5 marathons
 - **Sara** - 11 marathons (female runner, added May 2026)
+- **Qazi** - 1 marathon (Philadelphia, added May 2026)
 
-### Current Model Performance
+### Current Model Performance (May 2026)
 - **Best Model:** Random Forest
-- **CV MAE:** ±11.2 minutes
-- **Holdout MAE:** ±6.5 minutes (5 races, 4 runners)
-- **Dataset:** 40 marathons, 4 runners (30 training, 5 holdout)
-- **Top Features:** Weekly mileage (20%), runs/week (15%), consistency (10%)
+- **CV MAE:** ±13.9 minutes (5-fold cross-validation)
+- **Holdout MAE:** ±6.6 minutes (5 races, 4 runners)
+- **Dataset:** 41 marathons, 5 runners (31 training, 5 holdout)
+- **Top Features:** Weekly mileage (18%), runs/week (13%), peak mileage (9.5%), tempo workouts (8.1%)
 
 ### Holdout Predictions (5 races, 4 runners)
 | Runner | Race | Predicted | Actual | Error |
 |--------|------|-----------|--------|-------|
-| Osman | Dec 2024 Marathon | 3:12 | 3:22 | 9.8 min |
-| Salman | Jack & Jill 2025 | 3:04 | 2:55 | 8.9 min |
-| Azeem | Houston 2026 | 3:23 | 3:22 | 1.5 min |
-| Sara | Boston 2025 | 3:29 | 3:24 | 5.0 min |
-| Sara | London 2026 | 3:29 | 3:22 | 7.1 min |
+| Osman | Dec 2024 Marathon | 3:12 | 3:22 | 10.4 min |
+| Salman | Jul 2025 Marathon | 3:05 | 2:55 | 10.1 min |
+| Azeem | Houston 2026 | 3:27 | 3:22 | 5.4 min |
+| Sara | Boston 2025 | 3:28 | 3:24 | 3.4 min |
+| Sara | London 2026 | 3:26 | 3:22 | 3.9 min |
 
-**Average error: 6.5 minutes**
+**Average error: 6.6 minutes**
 Note: Sara is only female runner - sex_encoded feature present but needs more female data
+Note: Qazi only has 1 race so used for training only (no holdout)
 
 ---
 
@@ -65,6 +67,18 @@ Note: Sara is only female runner - sex_encoded feature present but needs more fe
 ---
 
 ## Session Log
+
+### 2026-05-23 (continued) - Quality Features & Qazi
+- Added 5th runner Qazi (1 marathon - Philadelphia 3:53)
+- Investigated why quality workout features were all zeros
+- Root cause: CSV cache had pace data but extraction wasn't using it
+- Added quality feature extraction from CSV for all runners:
+  - tempo runs (<8:00 pace), fast runs (<7:30 pace)
+  - `tempo_workout_count`, `quality_workout_percent`
+- Sara's quality features updated: Boston 26%, London 22%
+- Salman's quality features: 39% quality, 21 tempo runs
+- Model improved: 9.4 → 6.6 min avg error (30% improvement)
+- `tempo_workout_count` now #4 most important feature (8.1%)
 
 ### 2026-05-23 - Added Sara (4th runner)
 - Processed Sara's Strava export (1004 runs, 11 marathons)
