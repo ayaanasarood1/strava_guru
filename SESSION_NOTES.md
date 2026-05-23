@@ -29,15 +29,15 @@ This file tracks conversation context so Claude can pick up where we left off.
 - **Top Features:** Weekly mileage (18%), runs/week (13%), peak mileage (9.5%), tempo workouts (8.1%)
 
 ### Holdout Predictions (5 races, 4 runners)
-| Runner | Race | Predicted | Actual | Error |
-|--------|------|-----------|--------|-------|
-| Osman | Dec 2024 Marathon | 3:12 | 3:22 | 10.4 min |
-| Salman | Jul 2025 Marathon | 3:05 | 2:55 | 10.1 min |
-| Azeem | Houston 2026 | 3:27 | 3:22 | 5.4 min |
-| Sara | Boston 2025 | 3:28 | 3:24 | 3.4 min |
-| Sara | London 2026 | 3:26 | 3:22 | 3.9 min |
+| Runner | Race | Predicted | Actual | Error | Notes |
+|--------|------|-----------|--------|-------|-------|
+| Osman | Dec 2024 | 3:12 | 3:22 | -10.7 min | 90% humidity, struggles in heat |
+| Salman | Oct 2025 | 3:13 | 2:56 | +16.4 min | Exceptional fitness, model can't extrapolate |
+| Azeem | Houston 2026 | 3:26 | 3:22 | +4.1 min | Good prediction |
+| Sara | Boston 2025 | 3:27 | 3:24 | +2.6 min | Good prediction |
+| Sara | London 2026 | 3:26 | 3:22 | +3.8 min | Good prediction |
 
-**Average error: 6.6 minutes**
+**Average error: 7.5 minutes**
 Note: Sara is only female runner - sex_encoded feature present but needs more female data
 Note: Qazi only has 1 race so used for training only (no holdout)
 
@@ -67,6 +67,17 @@ Note: Qazi only has 1 race so used for training only (no holdout)
 ---
 
 ## Session Log
+
+### 2026-05-23 (continued) - Deep Investigation of Prediction Errors
+- Investigated why Salman predicted 16 min slow (3:13 vs 2:56 actual)
+  - Found bonked race filter was incorrectly filtering Salman's good Oct 2025 race
+  - Fixed to use (runner_id, race_id) tuples instead of just race_id
+  - Found humidity stored inconsistently (0-1 vs 0-100) - normalized all to 0-1
+- Investigated why Osman predicted 10 min fast (3:12 vs 3:22 actual)
+  - Found individual weather sensitivity varies dramatically by runner
+  - Salman handles 90% humidity fine; Osman slows 18+ min
+- Added `historical_pr_minutes` feature (now #3 importance at 12%)
+- Documented model limitations for final report
 
 ### 2026-05-23 (continued) - Quality Features & Qazi
 - Added 5th runner Qazi (1 marathon - Philadelphia 3:53)
@@ -116,6 +127,54 @@ python predict_race_time.py 26.2  # Marathon
 1. FIT file parsing fails for some Garmin firmware versions
 2. CSV cache lacks track points (no zone distribution, cardiac drift)
 3. Need to rebuild user's cache from CSV (may have similar issues)
+
+---
+
+## Model Limitations & Analysis (May 2026)
+
+### Why Salman's Prediction is 16 min Off (predicted 3:13, actual 2:56)
+
+**Root Cause: Extrapolation beyond training data**
+- Salman's Oct 2025 race had **90.3 peak weekly mileage** - higher than any race in training set
+- Model learned from Osman's high peak mileage (99-105 mi) → 3:09-3:59 finish
+- When Salman shows 90 mi peak, model incorrectly associates it with Osman-like times
+- Different runners have different baseline abilities that the model can't fully capture
+
+**Key insight:** Same training volume means different things for different runners. Salman can run 2:55 with 60 mi/wk while Osman runs 3:22 with similar volume.
+
+### Why Osman's Prediction is 10 min Off (predicted 3:12, actual 3:22)
+
+**Root Cause: Individual weather sensitivity not captured**
+- Dec 2024 race had **90% humidity**
+- Model predicts ~8 min slowdown, but Osman actually slowed 18 min from his PR
+- Osman consistently struggles in high humidity; Salman handles it well
+
+**Weather sensitivity by runner (high humidity >85%):**
+| Runner | Typical Slowdown from PR |
+|--------|-------------------------|
+| Salman | -2 to +3 min (heat tolerant) |
+| Osman | +18 to +41 min (struggles) |
+| Sara | +13 to +24 min (struggles) |
+
+### Features Added to Address These Issues
+- `historical_pr_minutes` - Runner's best prior marathon (now #3 importance at 12%)
+- Fixed humidity normalization (was inconsistent 0-1 vs 0-100 across runners)
+- Fixed bonked race filter to use (runner_id, race_id) tuples
+
+### Fundamental Limitations
+1. **Small dataset per runner** - Only 5-17 races per person, not enough to learn individual patterns
+2. **No runner-specific weather sensitivity** - Would need more data to estimate
+3. **Cross-runner generalization** - Model assumes similar training → similar results, but baseline fitness varies
+4. **Race execution** - Pacing strategy, nutrition, mental state not captured in training data
+
+### Recommendations for Future Improvement
+- [ ] Add runner-specific baseline pace from easy runs
+- [ ] Calculate individual weather sensitivity coefficient (needs more data)
+- [ ] Consider separate models per runner (if dataset grows)
+- [ ] Add race elevation profile as a feature
+- [ ] Track taper quality more precisely
+
+---
 
 ### Next Steps (from previous sessions)
 - [ ] Rebuild user's cache from CSV

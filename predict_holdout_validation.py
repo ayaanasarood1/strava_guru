@@ -31,9 +31,15 @@ def main():
 
     print(f"\nLoaded {len(all_races)} total races")
 
-    # Filter out bonked races
-    bonked_ids = ['marathon_20251012', 'marathon_20231008', 'sara_marathon_20240623']  # Include Sara's 4:30 training run
-    clean_races = [r for r in all_races if r['race_id'] not in bonked_ids]
+    # Filter out bonked races - use (runner_id, race_id) tuples to avoid filtering wrong runner
+    bonked_races = [
+        ('my_runner', 'marathon_20251012'),      # Osman's 3:45 bonk
+        ('my_runner', 'marathon_20231008'),      # Osman's bonk
+        ('runner_2', 'marathon_20231008'),       # Salman's bonk
+        ('runner_3', 'marathon_20231008'),       # Azeem's bonk
+        ('runner_sara', 'sara_marathon_20240623'),  # Sara's 4:30 training run
+    ]
+    clean_races = [r for r in all_races if (r['runner_id'], r['race_id']) not in bonked_races]
 
     print(f"Clean races (excluding bonked): {len(clean_races)}")
 
