@@ -58,6 +58,7 @@ def main():
         print(f"  {name}: {len(races)} races")
 
     # Identify holdout (most recent) for each runner
+    # For Sara, also hold out a middle race (Boston 2025)
     holdouts = {}
     training_races = []
 
@@ -71,11 +72,40 @@ def main():
             training_races.extend(races)
             continue
 
+        name = runner_names.get(runner_id, runner_id)
+
+        # For Sara, hold out 2 races: most recent + Boston 2025
+        if runner_id == 'runner_sara':
+            # Find Boston 2025
+            boston_idx = None
+            for i, r in enumerate(races):
+                if 'Boston' in r.get('race_name', '') and '2025' in r['race_date']:
+                    boston_idx = i
+                    break
+
+            if boston_idx is not None:
+                holdouts[f'{runner_id}_boston'] = races[boston_idx]
+                holdouts[f'{runner_id}_recent'] = races[-1]
+                # Training = all except Boston and most recent
+                for i, r in enumerate(races):
+                    if i != boston_idx and i != len(races) - 1:
+                        training_races.append(r)
+
+                print(f"\n{name}'s holdouts (2 races):")
+                print(f"  1. Boston 2025:")
+                print(f"     Date: {races[boston_idx]['race_date'][:10]}")
+                print(f"     Actual time: {format_time(races[boston_idx]['actual_time_minutes'])}")
+                print(f"  2. Most recent:")
+                print(f"     Date: {races[-1]['race_date'][:10]}")
+                print(f"     Race: {races[-1].get('race_name', 'Marathon')}")
+                print(f"     Actual time: {format_time(races[-1]['actual_time_minutes'])}")
+                continue
+
+        # Default: hold out most recent
         holdout = races[-1]
         holdouts[runner_id] = holdout
         training_races.extend(races[:-1])
 
-        name = runner_names.get(runner_id, runner_id)
         print(f"\n{name}'s most recent:")
         print(f"  Date: {holdout['race_date'][:10]}")
         print(f"  Race: {holdout.get('race_name', 'Marathon')}")
@@ -149,8 +179,17 @@ def main():
     total_error = 0
     predictions = []
 
-    for runner_id, holdout in holdouts.items():
-        name = runner_names.get(runner_id, runner_id)
+    for holdout_key, holdout in holdouts.items():
+        # Handle Sara's multiple holdouts
+        if holdout_key.startswith('runner_sara'):
+            name = "Sara"
+            suffix = holdout_key.replace('runner_sara_', '')
+            if suffix == 'boston':
+                name = "Sara (Boston)"
+            elif suffix == 'recent':
+                name = "Sara (Recent)"
+        else:
+            name = runner_names.get(holdout_key, holdout_key)
         features = [holdout['features'].get(k, 0) or 0 for k in feature_names]
         prediction = best_model.predict([features])[0]
         actual = holdout['actual_time_minutes']
