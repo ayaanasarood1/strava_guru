@@ -68,6 +68,20 @@ Note: Qazi only has 1 race so used for training only (no holdout)
 
 ## Session Log
 
+### 2026-05-23 (continued) - Hugging Face Deployment & Documentation
+- Created Gradio web app for marathon prediction (huggingface_app/)
+  - Upload Strava export zip, get prediction
+  - Shows training insights, confidence range, warnings
+- Created comprehensive README.md covering all rubric criteria:
+  - Dataset understanding (5 runners, 37 races, 48 features)
+  - Data cleaning (FIT corruption, humidity normalization)
+  - Algorithm (Random Forest, why chosen)
+  - Metrics (MAE, CV, holdout validation)
+  - Deployment (Hugging Face ready)
+  - LLM conversation reflection
+- Saved trained model as model.pkl for deployment
+- All code committed and pushed
+
 ### 2026-05-23 (continued) - Deep Investigation of Prediction Errors
 - Investigated why Salman predicted 16 min slow (3:13 vs 2:56 actual)
   - Found bonked race filter was incorrectly filtering Salman's good Oct 2025 race
