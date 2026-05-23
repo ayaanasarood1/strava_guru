@@ -134,13 +134,24 @@ python predict_race_time.py 26.2  # Marathon
 
 ### Why Salman's Prediction is 16 min Off (predicted 3:13, actual 2:56)
 
-**Root Cause: Extrapolation beyond training data**
-- Salman's Oct 2025 race had **90.3 peak weekly mileage** - higher than any race in training set
-- Model learned from Osman's high peak mileage (99-105 mi) → 3:09-3:59 finish
-- When Salman shows 90 mi peak, model incorrectly associates it with Osman-like times
-- Different runners have different baseline abilities that the model can't fully capture
+**Root Cause: Severe data imbalance**
 
-**Key insight:** Same training volume means different things for different runners. Salman can run 2:55 with 60 mi/wk while Osman runs 3:22 with similar volume.
+Dataset composition:
+- Sub-3:00 races: **4 total** (all Salman)
+- 3:00-3:30 races: 23
+- 3:30+ races: 14
+- Average finish time: **3:26**
+
+The model has only 4 sub-3 examples to learn from! Even on Salman's TRAINING data, it predicts 5-6 min slow:
+- Jul 2024: Actual 2:57, Predicted 3:03 (+6 min)
+- Dec 2024: Actual 2:55, Predicted 3:00 (+5 min)
+- Jul 2025: Actual 2:55, Predicted 3:00 (+5 min)
+
+Random Forest averages across trees trained on 90% slower data, pulling predictions toward the mean (3:26).
+
+**Salman's training volume is correct (61.6 mi/wk recent avg)** - the issue is the model doesn't have enough fast-runner examples to learn what that training means for a 2:55 runner vs a 3:22 runner.
+
+**Key insight:** Same training volume means different things for different runners. Salman runs 2:55 with 60 mi/wk while Osman runs 3:22 with similar volume. The model can't distinguish this with only 4 sub-3 examples.
 
 ### Why Osman's Prediction is 10 min Off (predicted 3:12, actual 3:22)
 
@@ -168,6 +179,9 @@ python predict_race_time.py 26.2  # Marathon
 4. **Race execution** - Pacing strategy, nutrition, mental state not captured in training data
 
 ### Recommendations for Future Improvement
+- [ ] **Add more fast runners** - Currently only 4 sub-3 races (all Salman). Need more data at the fast end.
+- [ ] **Use sample weighting** - Upweight rare sub-3 examples during training
+- [ ] **Try quantile regression** - Predict a range rather than point estimate
 - [ ] Add runner-specific baseline pace from easy runs
 - [ ] Calculate individual weather sensitivity coefficient (needs more data)
 - [ ] Consider separate models per runner (if dataset grows)
