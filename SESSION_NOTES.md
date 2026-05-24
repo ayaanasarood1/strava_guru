@@ -68,6 +68,16 @@ Note: Qazi only has 1 race so used for training only (no holdout)
 
 ## Session Log
 
+### 2026-05-23 (continued) - Added Salman Khan (6th runner)
+- Processed new runner "Salman Khan" from downloads/salman_khan
+- 1604 runs, 31 marathons (2017-2026)
+- PR: 3:05 (Mesa Phoenix 2020)
+- 6 Major Marathon Stars completed (Tokyo 2023)
+- Updated combined dataset: now 72 races from 6 runners
+- Retrained model: holdout MAE improved 7.5 → 5.5 minutes
+- Sara's Boston prediction now 0.1 min error (nearly perfect!)
+- Updated Hugging Face model.pkl
+
 ### 2026-05-23 (continued) - Hugging Face Deployment & Documentation
 - Created Gradio web app for marathon prediction (huggingface_app/)
   - Upload Strava export zip, get prediction
