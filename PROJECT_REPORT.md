@@ -30,8 +30,6 @@ This project predicts marathon finish times based on training data from Strava, 
 | **Total Time** | **11,006 hours** |
 | Calendar Days Covered | 366/366 (100%) |
 | Running Activities (used for model) | 8,442 |
-| Marathon Races (Training Set) | 43 |
-| Marathon Races (Holdout Test) | 5 |
 
 ### Activity Type Breakdown
 | Activity Type | Count | Percentage |
