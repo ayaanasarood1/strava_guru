@@ -15,10 +15,7 @@
         pre { background-color: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
         hr { border: none; border-top: 1px solid #ccc; margin: 30px 0; }
         li { margin: 5px 0; }
-        @media print {
-            body { margin: 0; padding: 20px; }
-            h2 { page-break-before: auto; }
-        }
+        @media print { body { margin: 0; padding: 20px; } h2 { page-break-before: auto; } }
     </style>
 </head>
 <body>
@@ -33,10 +30,12 @@
 <tr><td>Metric</td><td>Value</td></tr>
 <tr><td>Total Running Activities</td><td>8,442</td></tr>
 <tr><td>Total Miles Tracked</td><td>62,335 miles</td></tr>
+<tr><td>Total Running Time</td><td>8,702 hours</td></tr>
 <tr><td>Years of Training Data</td><td>15.4 years (2010-2026)</td></tr>
+<tr><td>Calendar Days Covered</td><td>366/366 (100%)</td></tr>
 <tr><td>Marathon Races (Training Set)</td><td>43</td></tr>
 <tr><td>Marathon Races (Holdout Test)</td><td>5</td></tr>
-</table></p><p>The dataset consists of real-world running data exported from Strava, including detailed activity logs with distance, duration, pace, heart rate, and elevation data. This represents a substantial corpus of endurance training data spanning over 15 years.</p><p><hr></p><p><h2>3. Input Features, Target Values, and Data Characteristics</h2></p><p><h3>Target Variable</h3>
+</table></p><p>The dataset consists of real-world running data exported from Strava, including detailed activity logs with distance, duration, pace, heart rate, and elevation data. This represents a substantial corpus of endurance training data spanning over 15 years, with <strong>complete calendar coverage</strong> - every day of the year has at least one recorded activity across the dataset.</p><p><hr></p><p><h2>3. Input Features, Target Values, and Data Characteristics</h2></p><p><h3>Target Variable</h3>
 <li><strong>Marathon finish time</strong> in minutes (continuous, regression target)</li>
 <li>Range: 175 minutes (2:55) to 243 minutes (4:03)</li></p><p><h3>Input Features (33 total)</h3></p><p><strong>Volume Features:</strong>
 <li><code>total_runs</code> - Number of runs in training window</li>
@@ -114,11 +113,11 @@ decayed_pr = marathon_pr * decay_factor + 210 * (1 - decay_factor)
                         │  (w/ downhill    │     │  (capped to     │
                         │   filtering)     │     │   2:30-5:00)    │
                         └──────────────────┘     └─────────────────┘
-</code></pre></p><p><h3>Key Design Decisions</h3></p><p><li><strong>16-week training window:</strong> Standard marathon training block length</li>
-<li><strong>7-day taper exclusion:</strong> Final week before race excluded (taper period)</li>
-<li><strong>PR decay:</strong> Older PRs weighted less (3-year half-life)</li>
-<li><strong>Downhill filtering:</strong> Known downhill courses excluded from PR</li>
-<li><strong>Prediction capping:</strong> Results bounded to realistic range (2:30-5:00)</li></p><p><hr></p><p><h2>7. Evaluation Metrics</h2></p><p><h3>Why MAE (Mean Absolute Error)?</h3>
+</code></pre></p><p><h3>Key Design Decisions</h3></p><p>1. <strong>16-week training window:</strong> Standard marathon training block length
+2. <strong>7-day taper exclusion:</strong> Final week before race excluded (taper period)
+3. <strong>PR decay:</strong> Older PRs weighted less (3-year half-life)
+4. <strong>Downhill filtering:</strong> Known downhill courses excluded from PR
+5. <strong>Prediction capping:</strong> Results bounded to realistic range (2:30-5:00)</p><p><hr></p><p><h2>7. Evaluation Metrics</h2></p><p><h3>Why MAE (Mean Absolute Error)?</h3>
 <li><strong>Interpretable:</strong> Error is in minutes, directly meaningful to runners</li>
 <li><strong>Robust:</strong> Less sensitive to outliers than MSE</li>
 <li><strong>Practical:</strong> A 5-minute error is understandable; 25 min² is not</li></p><p><h3>Results</h3></p><p><table>
@@ -145,17 +144,17 @@ decayed_pr = marathon_pr * decay_factor + 210 * (1 - decay_factor)
 <li><strong>Limited by training data size:</strong> 43 races is relatively small</li>
 <li><strong>Cannot predict sub-2:50 well:</strong> Few examples in training data</li></p><p><h3>Why Holdout MAE < CV MAE?</h3>
 The holdout MAE (5.0 min) is lower than CV MAE (14.3 min) because:
-<li>Holdout races are recent, representing current fitness</li>
-<li>Small holdout set (5 races) has lower variance</li>
-<li>CV includes harder-to-predict historical races</li></p><p><hr></p><p><h2>9. Limitations and Ethics</h2></p><p><h3>Technical Limitations</h3>
-<li><strong>Small training set:</strong> 43 marathon races from limited runners</li>
-<li><strong>Downhill detection:</strong> Cannot automatically detect all downhill courses</li>
-<li><strong>No weather adjustment:</strong> Temperature/humidity not incorporated</li>
-<li><strong>Heart rate data optional:</strong> Many activities lack HR data</li></p><p><h3>Ethical Considerations</h3>
-<li><strong>Privacy:</strong> Uses personal fitness data - users must consent to upload</li>
-<li><strong>Data ownership:</strong> Runners own their Strava data</li>
-<li><strong>No PII stored:</strong> App doesn't retain uploaded data</li>
-<li><strong>Bias:</strong> Model trained on specific demographic (recreational marathoners)</li></p><p><h3>Potential Misuse</h3>
+1. Holdout races are recent, representing current fitness
+2. Small holdout set (5 races) has lower variance
+3. CV includes harder-to-predict historical races</p><p><hr></p><p><h2>9. Limitations and Ethics</h2></p><p><h3>Technical Limitations</h3>
+1. <strong>Small training set:</strong> 43 marathon races from limited runners
+2. <strong>Downhill detection:</strong> Cannot automatically detect all downhill courses
+3. <strong>No weather adjustment:</strong> Temperature/humidity not incorporated
+4. <strong>Heart rate data optional:</strong> Many activities lack HR data</p><p><h3>Ethical Considerations</h3>
+1. <strong>Privacy:</strong> Uses personal fitness data - users must consent to upload
+2. <strong>Data ownership:</strong> Runners own their Strava data
+3. <strong>No PII stored:</strong> App doesn't retain uploaded data
+4. <strong>Bias:</strong> Model trained on specific demographic (recreational marathoners)</p><p><h3>Potential Misuse</h3>
 <li>Should not be used for medical decisions</li>
 <li>Predictions are estimates, not guarantees</li>
 <li>Cannot account for race-day factors (weather, illness, course)</li></p><p><hr></p><p><h2>10. Reflection</h2></p><p><h3>What I Learned</h3></p><p><strong>1. Data Quality > Model Complexity</strong>
@@ -168,10 +167,10 @@ Supporting both raw Strava CSV and enriched CSV formats required careful handlin
 <li>Include course elevation profiles</li>
 <li>Collect more training data</li>
 <li>Try deep learning with time-series features</li>
-<li>Add SHAP values for per-prediction explanations</li></p><p><hr></p><p><h2>Deliverables</h2></p><p><li><strong>GitHub Repository:</strong> https://github.com/ayaanasarood1/strava_guru</li>
-<li><strong>Hugging Face Demo:</strong> https://huggingface.co/spaces/ayaanasarood/strava_guru</li>
-<li><strong>LLM Conversation:</strong> Exported separately</li>
-<li><strong>This Report:</strong> PROJECT_REPORT.pdf</li></p><p><hr></p><p><h2>Appendix: Code Structure</h2></p><p><pre><code>strava_guru/
+<li>Add SHAP values for per-prediction explanations</li></p><p><hr></p><p><h2>Deliverables</h2></p><p>1. <strong>GitHub Repository:</strong> https://github.com/ayaanasarood1/strava_guru
+2. <strong>Hugging Face Demo:</strong> https://huggingface.co/spaces/ayaanasarood/strava_guru
+3. <strong>LLM Conversation:</strong> Exported separately
+4. <strong>This Report:</strong> PROJECT_REPORT.pdf</p><p><hr></p><p><h2>Appendix: Code Structure</h2></p><p><pre><code>strava_guru/
 ├── huggingface_app/
 │   ├── app.py              # Gradio web application
 │   └── model.pkl           # Trained Random Forest model
