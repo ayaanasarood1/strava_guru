@@ -31,14 +31,15 @@ Predict your marathon finish time based on your Strava training data using machi
 
 | Runner | Marathons | Training Period | Best Time |
 |--------|-----------|-----------------|-----------|
-| Osman | 7 | 2021-2025 | 3:04 |
+| Osman | 6 | 2021-2024 | 3:04 |
 | Salman | 17 | 2012-2025 | 2:55 |
-| Azeem | 5 | 2022-2026 | 3:22 |
-| Sara | 11 | 2022-2026 | 3:17 |
+| Azeem | 4 | 2022-2026 | 3:22 |
+| Sara | 10 | 2022-2026 | 3:17 |
 | Qazi | 1 | 2025 | 3:53 |
-| **Total** | **41** | | |
+| Salman Khan | 31 | 2017-2026 | 3:05 |
+| **Total** | **72** | | |
 
-After filtering "bonked" races (DNF or significant underperformance): **37 clean races**
+After filtering "bonked" races (DNF or significant underperformance): **68 clean races**
 
 ### Target Variable
 - **Marathon finish time in minutes** (continuous, regression task)
@@ -174,8 +175,21 @@ We evaluated 4 regression algorithms:
 |-------|--------|-------|
 | Ridge Regression | 30.5 min | Poor - assumes linear relationships |
 | Lasso Regression | 28.6 min | Poor - too much regularization |
-| **Random Forest** | **13.9 min** | **Best - handles non-linearity** |
+| **Random Forest** | **15.0 min** | **Best - handles non-linearity** |
 | Gradient Boosting | 16.0 min | Good but prone to overfitting |
+
+### Hybrid Feature Extraction
+
+The model uses a **hybrid approach** combining two data sources:
+
+| Feature Type | Source | Reason |
+|--------------|--------|--------|
+| Volume (mileage, runs/week) | CSV | More complete activity count |
+| Peak/Long runs | MAX(CSV, FIT) | Catches runs either might miss |
+| Quality workouts | MAX(CSV, FIT) | FIT has more precise pace |
+| Heart rate | FIT (fallback: CSV) | FIT files have detailed HR data |
+| Runner profile | User input | Age, sex, historical PR |
+| Weather | User input | Race day conditions |
 
 ### Why Random Forest?
 
@@ -230,13 +244,14 @@ Hold out each runner's most recent race for final evaluation:
 
 | Runner | Race | Predicted | Actual | Error |
 |--------|------|-----------|--------|-------|
-| Salman | Oct 2025 | 3:08 | 2:56 | +12.3 min |
-| Osman | Dec 2024 | 3:15 | 3:22 | -7.1 min |
-| Sara | Boston 2025 | 3:28 | 3:24 | +3.5 min |
-| Sara | London 2026 | 3:27 | 3:22 | +4.4 min |
-| Azeem | Houston 2026 | 3:25 | 3:22 | +3.1 min |
+| Osman | Dec 2024 | 3:17 | 3:22 | 5.0 min |
+| Salman | Oct 2025 | 3:05 | 2:56 | 8.9 min |
+| Azeem | Houston 2026 | 3:23 | 3:22 | 1.5 min |
+| Salman Khan | Boston 2026 | 3:53 | 3:46 | 7.0 min |
+| Sara | Boston 2025 | 3:24 | 3:24 | 0.2 min |
+| Sara | London 2026 | 3:28 | 3:22 | 6.2 min |
 
-**Holdout MAE: 6.1 minutes**
+**Holdout MAE: 4.8 minutes** (Hybrid model)
 
 ### Interpretation of Results
 
