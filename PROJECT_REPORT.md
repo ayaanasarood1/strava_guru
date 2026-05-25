@@ -35,6 +35,15 @@ This project predicts marathon finish times based on training data from Strava, 
 
 The dataset consists of real-world running data exported from Strava, including detailed activity logs with distance, duration, pace, heart rate, and elevation data. This represents a substantial corpus of endurance training data spanning over 15 years, with **complete calendar coverage** - every day of the year has at least one recorded activity across the dataset.
 
+### Calendar Coverage Heatmap
+![Activity Heatmap](activity_heatmap.png)
+
+The heatmap shows activity counts for each day of the year (aggregated across all years). Key observations:
+- **100% coverage**: All 366 days have recorded activities
+- **Average**: 23.1 runs per calendar day
+- **Peak activity**: September 28th (36 runs) - common marathon training peak
+- **Consistent distribution**: No major gaps or seasonal dropoffs
+
 ---
 
 ## 3. Input Features, Target Values, and Data Characteristics
