@@ -372,75 +372,8 @@ def format_time(minutes):
     return f"{hours}:{mins:02d}"
 
 
-def analyze_csv(csv_file, race_date_str):
-    """Analyze CSV and return detected PR info"""
-    if csv_file is None:
-        return "Upload a CSV file first", "", 3, 30, ""
-
-    try:
-        race_date = datetime.strptime(race_date_str, "%Y-%m-%d")
-    except:
-        return "Invalid date format", "", 3, 30, ""
-
-    try:
-        with open(csv_file.name, 'r') as f:
-            csv_content = f.read()
-        activities, marathons = parse_strava_csv(csv_content)
-    except Exception as e:
-        return f"Error: {str(e)}", "", 3, 30, ""
-
-    # Detect CSV format for warning
-    df = pd.read_csv(StringIO(csv_content))
-    csv_format = detect_csv_format(df)
-
-    pr_time, pr_date, prior_marathons, excluded_downhill = detect_pr_from_marathons(marathons, race_date)
-
-    if pr_time:
-        pr_info = f"**Detected PR: {format_time(pr_time)}** (set on {pr_date.strftime('%Y-%m-%d')})"
-        pr_hours = int(pr_time // 60)
-        pr_mins = int(pr_time % 60)
-        pr_date_str = pr_date.strftime("%Y-%m-%d")
-
-        # List all prior marathons with elevation info
-        marathon_lines = []
-        for m in sorted(prior_marathons, key=lambda x: x['date']):
-            net_elev = m.get('net_elevation', 0)
-            elev_str = f" ({net_elev:+.0f}ft)" if net_elev != 0 else ""
-
-            # Check why it was excluded
-            if m in excluded_downhill:
-                if is_known_downhill_marathon(m.get('name', '')):
-                    excluded_marker = " ⚠️ *excluded (known downhill course)*"
-                else:
-                    excluded_marker = " ⚠️ *excluded from PR (downhill)*"
-            else:
-                excluded_marker = ""
-
-            marathon_lines.append(
-                f"- {m['date'].strftime('%Y-%m-%d')}: {format_time(m['duration_min'])}{elev_str} - {m['name'][:35]}{excluded_marker}"
-            )
-        marathon_list = "\n".join(marathon_lines)
-
-        if excluded_downhill:
-            marathon_info = f"**Found {len(prior_marathons)} prior marathon(s)** ({len(excluded_downhill)} downhill excluded from PR):\n{marathon_list}"
-        else:
-            marathon_info = f"**Found {len(prior_marathons)} prior marathon(s):**\n{marathon_list}"
-
-        # Add note about enriched CSV limitations
-        if csv_format == 'enriched' and not excluded_downhill:
-            marathon_info += "\n\n*Note: Using enriched CSV - downhill detection limited. Use override below if your PR was on a downhill course.*"
-    else:
-        pr_info = "**No prior marathons detected.** Please enter your PR manually below."
-        pr_hours = 3
-        pr_mins = 30
-        pr_date_str = ""
-        marathon_info = ""
-
-    return pr_info, marathon_info, pr_hours, pr_mins, pr_date_str
-
-
 def predict_marathon(csv_file, race_date_str, override_pr, pr_hours, pr_minutes, pr_date_str):
-    """Main prediction function"""
+    """Main prediction function - analyzes CSV and predicts in one step"""
     if csv_file is None:
         return "Please upload an activities.csv file", "", ""
 
@@ -458,7 +391,7 @@ def predict_marathon(csv_file, race_date_str, override_pr, pr_hours, pr_minutes,
         return f"Error reading CSV: {str(e)}", "", ""
 
     if not activities:
-        return "Error: No running activities found", "", ""
+        return "Error: No running activities found in the CSV", "", ""
 
     # Get PR (auto-detected or override)
     auto_pr_time, auto_pr_date, prior_marathons, excluded_downhill = detect_pr_from_marathons(marathons, race_date)
@@ -494,7 +427,7 @@ def predict_marathon(csv_file, race_date_str, override_pr, pr_hours, pr_minutes,
     # Extract features
     result = extract_features(activities, race_date, marathon_pr, pr_date, prior_marathon_time)
     if result[0] is None:
-        return "Error: Not enough training data in the 16-week window", "", ""
+        return "Error: Not enough training data in the 16-week window before race date", "", ""
 
     features, window_start, window_end = result
 
@@ -518,17 +451,41 @@ def predict_marathon(csv_file, race_date_str, override_pr, pr_hours, pr_minutes,
     pr_age_years = features['pr_age_years']
     decay_factor = features['pr_decay_factor']
 
-    insights = f"""
-### Training Summary
-**Race Date:** {race_date_str}
-**Training Window:** {window_start.strftime('%Y-%m-%d')} to {window_end.strftime('%Y-%m-%d')}
+    # Build marathon history section
+    if prior_marathons:
+        marathon_lines = []
+        for m in sorted(prior_marathons, key=lambda x: x['date']):
+            net_elev = m.get('net_elevation', 0)
+            elev_str = f" ({net_elev:+.0f}ft)" if net_elev != 0 else ""
+            if m in excluded_downhill:
+                if is_known_downhill_marathon(m.get('name', '')):
+                    marker = " ⚠️ *downhill*"
+                else:
+                    marker = " ⚠️ *downhill*"
+            else:
+                marker = " ✓" if m['duration_min'] == marathon_pr else ""
+            marathon_lines.append(
+                f"- {m['date'].strftime('%Y-%m-%d')}: {format_time(m['duration_min'])}{elev_str} - {m['name'][:30]}{marker}"
+            )
+        marathon_history = "\n".join(marathon_lines)
+        excluded_note = f" ({len(excluded_downhill)} downhill excluded)" if excluded_downhill else ""
+    else:
+        marathon_history = "No prior marathons found"
+        excluded_note = ""
 
+    insights = f"""
 ### PR Information
 - **Marathon PR:** {format_time(marathon_pr)} ({pr_source})
 - **PR Age:** {pr_age_years:.1f} years
 - **PR Decay Factor:** {decay_factor:.2f} (older PRs weighted less)
 
-### Training Metrics
+### Prior Marathons{excluded_note}
+{marathon_history}
+
+### Training Summary
+**Race Date:** {race_date_str}
+**Training Window:** {window_start.strftime('%Y-%m-%d')} to {window_end.strftime('%Y-%m-%d')}
+
 | Metric | Value |
 |--------|-------|
 | Weekly Mileage | {features['avg_weekly_mileage']:.1f} miles |
@@ -538,7 +495,6 @@ def predict_marathon(csv_file, race_date_str, override_pr, pr_hours, pr_minutes,
 | Longest Run | {features['long_run_max_distance']:.1f} miles |
 | Tempo Runs | {features['tempo_run_count']} |
 | Recent 4-Week Mileage | {features['recent_mileage']:.1f} miles |
-| Training Frequency | {features['training_frequency']:.0f}% of days |
 """
 
     # Warnings
@@ -549,9 +505,11 @@ def predict_marathon(csv_file, race_date_str, override_pr, pr_hours, pr_minutes,
         warnings.append("Few long runs - important for marathon endurance")
     if pr_age_years > 3:
         warnings.append(f"PR is {pr_age_years:.1f} years old - prediction has more uncertainty")
+    if excluded_downhill and not override_pr:
+        warnings.append(f"Downhill marathon(s) excluded from PR. Use override if incorrect.")
 
     if warnings:
-        insights += "\n### Warnings\n" + "\n".join(f"- ⚠️ {w}" for w in warnings)
+        insights += "\n### Notes\n" + "\n".join(f"- ⚠️ {w}" for w in warnings)
 
     return prediction_str, range_str, insights
 
@@ -562,59 +520,31 @@ with gr.Blocks(title="Marathon Time Predictor") as app:
     # Marathon Time Predictor
 
     Predict your marathon finish time based on your Strava training data.
-
-    **How it works:**
-    1. Upload your CSV (either raw `activities.csv` from Strava export, or enriched CSV)
-    2. Enter your race date
-    3. Review auto-detected PR (override if it was on a downhill course)
-    4. Get your prediction!
-
-    *Tip: Raw Strava `activities.csv` can auto-detect downhill PRs. Enriched CSVs need manual override.*
     """)
 
     with gr.Row():
         with gr.Column(scale=1):
-            gr.Markdown("### Step 1: Upload Data")
-            csv_file = gr.File(label="activities.csv", file_types=[".csv"])
+            csv_file = gr.File(label="Upload activities.csv (from Strava export)", file_types=[".csv"])
             race_date = gr.Textbox(
                 label="Race Date (YYYY-MM-DD)",
                 value=(datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d"),
                 placeholder="2026-10-15"
             )
 
-            analyze_btn = gr.Button("Analyze CSV", variant="secondary")
+            with gr.Accordion("Override PR (if needed)", open=False):
+                gr.Markdown("*Use this if your auto-detected PR was on a downhill course*")
+                override_pr = gr.Checkbox(label="Override detected PR", value=False)
+                with gr.Row():
+                    pr_hours = gr.Number(label="PR Hours", value=3, minimum=2, maximum=6)
+                    pr_minutes = gr.Number(label="PR Minutes", value=30, minimum=0, maximum=59)
+                pr_date_input = gr.Textbox(label="PR Date (YYYY-MM-DD)", value="", placeholder="2024-03-15")
 
-            gr.Markdown("### Step 2: Review PR")
-            pr_info = gr.Markdown("Upload CSV to detect your marathon PR")
-            marathon_info = gr.Markdown("")
-
-            override_pr = gr.Checkbox(label="Override detected PR", value=False)
-            with gr.Row():
-                pr_hours = gr.Number(label="PR Hours", value=3, minimum=2, maximum=6, visible=True)
-                pr_minutes = gr.Number(label="PR Minutes", value=30, minimum=0, maximum=59, visible=True)
-            pr_date_input = gr.Textbox(label="PR Date (YYYY-MM-DD)", value="", placeholder="2024-03-15", visible=True)
-
-            gr.Markdown("### Step 3: Predict")
             predict_btn = gr.Button("Predict Marathon Time", variant="primary", size="lg")
 
         with gr.Column(scale=1):
             prediction_output = gr.Markdown()
             range_output = gr.Markdown()
             insights_output = gr.Markdown()
-
-    # Wire up analyze button
-    def on_analyze(csv_file, race_date_str):
-        result = analyze_csv(csv_file, race_date_str)
-        if len(result) == 4:
-            # Error case
-            return result[0], "", 3, 30, ""
-        return result
-
-    analyze_btn.click(
-        fn=on_analyze,
-        inputs=[csv_file, race_date],
-        outputs=[pr_info, marathon_info, pr_hours, pr_minutes, pr_date_input]
-    )
 
     # Wire up predict button
     predict_btn.click(
