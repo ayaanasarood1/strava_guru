@@ -15,12 +15,13 @@
         pre { background-color: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
         hr { border: none; border-top: 1px solid #ccc; margin: 30px 0; }
         li { margin: 5px 0; }
+        img { max-width: 100%; height: auto; margin: 20px 0; }
         @media print { body { margin: 0; padding: 20px; } h2 { page-break-before: auto; } }
     </style>
 </head>
 <body>
 <h1>Marathon Time Predictor</h1>
-<h2>Advanced AI Models and Applications - Final Project Report</h2></p><p><strong>Student:</strong> Ayaan Asarood
+<h2>Advanced AI Models and Applications - Final Project Report</h2></p><p><strong>Student:</strong> Ayaana Sarood
 <strong>Date:</strong> May 25, 2026
 <strong>Course:</strong> Advanced AI Models and Applications</p><p><hr></p><p><h2>1. Project Overview</h2></p><p>This project predicts marathon finish times based on training data from Strava, a popular fitness tracking platform. Given a runner's training history from the 16 weeks before a race, the model predicts their expected marathon finish time.</p><p><strong>Problem Type:</strong> Regression
 <strong>Algorithm:</strong> Random Forest Regressor
@@ -28,14 +29,30 @@
 <strong>Live Demo:</strong> https://huggingface.co/spaces/ayaanasarood/strava_guru</p><p><hr></p><p><h2>2. Dataset Used</h2></p><p><strong>Source:</strong> Custom dataset from Strava activity exports (teacher-approved)</p><p><h3>Dataset Scale</h3>
 <table>
 <tr><td>Metric</td><td>Value</td></tr>
-<tr><td>Total Running Activities</td><td>8,442</td></tr>
-<tr><td>Total Miles Tracked</td><td>62,335 miles</td></tr>
-<tr><td>Total Running Time</td><td>8,702 hours</td></tr>
-<tr><td>Years of Training Data</td><td>15.4 years (2010-2026)</td></tr>
+<tr><td><strong>Total Activities</strong></td><td><strong>12,096</strong></td></tr>
+<tr><td><strong>Total Distance</strong></td><td><strong>76,942 miles</strong></td></tr>
+<tr><td><strong>Total Time</strong></td><td><strong>11,006 hours</strong></td></tr>
+<tr><td>Years of Data</td><td>15.4 years (2010-2026)</td></tr>
 <tr><td>Calendar Days Covered</td><td>366/366 (100%)</td></tr>
+<tr><td>Running Activities (used for model)</td><td>8,442</td></tr>
 <tr><td>Marathon Races (Training Set)</td><td>43</td></tr>
 <tr><td>Marathon Races (Holdout Test)</td><td>5</td></tr>
-</table></p><p>The dataset consists of real-world running data exported from Strava, including detailed activity logs with distance, duration, pace, heart rate, and elevation data. This represents a substantial corpus of endurance training data spanning over 15 years, with <strong>complete calendar coverage</strong> - every day of the year has at least one recorded activity across the dataset.</p><p><hr></p><p><h2>3. Input Features, Target Values, and Data Characteristics</h2></p><p><h3>Target Variable</h3>
+</table></p><p><h3>Activity Type Breakdown</h3>
+<table>
+<tr><td>Activity Type</td><td>Count</td><td>Percentage</td></tr>
+<tr><td>Run</td><td>8,442</td><td>69.8%</td></tr>
+<tr><td>Walk</td><td>1,098</td><td>9.1%</td></tr>
+<tr><td>Ride</td><td>584</td><td>4.8%</td></tr>
+<tr><td>Weight Training</td><td>552</td><td>4.6%</td></tr>
+<tr><td>Workout</td><td>371</td><td>3.1%</td></tr>
+<tr><td>Hike</td><td>263</td><td>2.2%</td></tr>
+<tr><td>Other (Swim, Yoga, etc.)</td><td>786</td><td>6.4%</td></tr>
+</table></p><p>The dataset consists of real-world running data exported from Strava, including detailed activity logs with distance, duration, pace, heart rate, and elevation data. This represents a substantial corpus of endurance training data spanning over 15 years, with <strong>complete calendar coverage</strong> - every day of the year has at least one recorded activity across the dataset.</p><p><h3>Calendar Coverage Heatmap</h3>
+![Activity Heatmap](activity_heatmap.png)</p><p>The heatmap shows activity counts for each day of the year (aggregated across all years). Key observations:
+<li><strong>100% coverage</strong>: All 366 days have recorded activities</li>
+<li><strong>Average</strong>: 23.1 runs per calendar day</li>
+<li><strong>Peak activity</strong>: September 28th (36 runs) - common marathon training peak</li>
+<li><strong>Consistent distribution</strong>: No major gaps or seasonal dropoffs</li></p><p><hr></p><p><h2>3. Input Features, Target Values, and Data Characteristics</h2></p><p><h3>Target Variable</h3>
 <li><strong>Marathon finish time</strong> in minutes (continuous, regression target)</li>
 <li>Range: 175 minutes (2:55) to 243 minutes (4:03)</li></p><p><h3>Input Features (33 total)</h3></p><p><strong>Volume Features:</strong>
 <li><code>total_runs</code> - Number of runs in training window</li>

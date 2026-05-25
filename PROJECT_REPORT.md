@@ -1,7 +1,7 @@
 # Marathon Time Predictor
 ## Advanced AI Models and Applications - Final Project Report
 
-**Student:** Ayaan Asarood
+**Student:** Ayaana Sarood
 **Date:** May 25, 2026
 **Course:** Advanced AI Models and Applications
 
