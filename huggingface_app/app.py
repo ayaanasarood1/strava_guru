@@ -19,6 +19,27 @@ MODEL = model_data['model']
 FEATURE_NAMES = model_data['feature_names']
 
 
+# Known downhill marathon courses (net drop > 500ft) - exclude from PR
+KNOWN_DOWNHILL_MARATHONS = [
+    'big bear',           # Big Bear Marathon - ~3000ft drop
+    'mesa phoenix',       # Mesa Phoenix Marathon - ~1500ft drop
+    'mesa-phx',
+    'revel',              # REVEL series are all downhill
+    'st. george',         # St. George Marathon - downhill
+    'st george',
+    'tucson',             # Tucson Marathon - downhill
+    'jacksonville bank',  # Jacksonville Bank Marathon - downhill
+]
+
+
+def is_known_downhill_marathon(activity_name):
+    """Check if marathon is a known downhill course"""
+    if pd.isna(activity_name):
+        return False
+    name = str(activity_name).lower()
+    return any(pattern in name for pattern in KNOWN_DOWNHILL_MARATHONS)
+
+
 def is_actual_marathon_race(activity_name):
     """Check if activity name indicates an actual marathon race (not training run)"""
     if pd.isna(activity_name):
@@ -205,12 +226,23 @@ def detect_pr_from_marathons(marathons, race_date):
     if not prior_marathons:
         return None, None, [], []
 
-    # Filter out downhill courses (net drop > 500ft) for PR consideration
-    # These are aided times and shouldn't count as true PRs
+    # Filter out downhill courses for PR consideration
+    # Method 1: By elevation data (net drop > 500ft)
+    # Method 2: By known downhill marathon names (fallback when elevation unavailable)
     DOWNHILL_THRESHOLD = -500  # feet
 
-    pr_eligible = [m for m in prior_marathons if m.get('net_elevation', 0) >= DOWNHILL_THRESHOLD]
-    excluded_downhill = [m for m in prior_marathons if m.get('net_elevation', 0) < DOWNHILL_THRESHOLD]
+    pr_eligible = []
+    excluded_downhill = []
+
+    for m in prior_marathons:
+        net_elev = m.get('net_elevation', 0)
+        is_downhill_by_elevation = net_elev < DOWNHILL_THRESHOLD
+        is_downhill_by_name = is_known_downhill_marathon(m.get('name', ''))
+
+        if is_downhill_by_elevation or is_downhill_by_name:
+            excluded_downhill.append(m)
+        else:
+            pr_eligible.append(m)
 
     if not pr_eligible:
         # All marathons were downhill - use fastest anyway but warn
@@ -374,7 +406,16 @@ def analyze_csv(csv_file, race_date_str):
         for m in sorted(prior_marathons, key=lambda x: x['date']):
             net_elev = m.get('net_elevation', 0)
             elev_str = f" ({net_elev:+.0f}ft)" if net_elev != 0 else ""
-            excluded_marker = " ⚠️ *excluded from PR (downhill)*" if m in excluded_downhill else ""
+
+            # Check why it was excluded
+            if m in excluded_downhill:
+                if is_known_downhill_marathon(m.get('name', '')):
+                    excluded_marker = " ⚠️ *excluded (known downhill course)*"
+                else:
+                    excluded_marker = " ⚠️ *excluded from PR (downhill)*"
+            else:
+                excluded_marker = ""
+
             marathon_lines.append(
                 f"- {m['date'].strftime('%Y-%m-%d')}: {format_time(m['duration_min'])}{elev_str} - {m['name'][:35]}{excluded_marker}"
             )
