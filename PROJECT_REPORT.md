@@ -25,13 +25,25 @@ This project predicts marathon finish times based on training data from Strava, 
 ### Dataset Scale
 | Metric | Value |
 |--------|-------|
-| Total Running Activities | 8,442 |
-| Total Miles Tracked | 62,335 miles |
-| Total Running Time | 8,702 hours |
-| Years of Training Data | 15.4 years (2010-2026) |
+| **Total Activities** | **12,096** |
+| **Total Distance** | **76,942 miles** |
+| **Total Time** | **11,006 hours** |
+| Years of Data | 15.4 years (2010-2026) |
 | Calendar Days Covered | 366/366 (100%) |
+| Running Activities (used for model) | 8,442 |
 | Marathon Races (Training Set) | 43 |
 | Marathon Races (Holdout Test) | 5 |
+
+### Activity Type Breakdown
+| Activity Type | Count | Percentage |
+|--------------|-------|------------|
+| Run | 8,442 | 69.8% |
+| Walk | 1,098 | 9.1% |
+| Ride | 584 | 4.8% |
+| Weight Training | 552 | 4.6% |
+| Workout | 371 | 3.1% |
+| Hike | 263 | 2.2% |
+| Other (Swim, Yoga, etc.) | 786 | 6.4% |
 
 The dataset consists of real-world running data exported from Strava, including detailed activity logs with distance, duration, pace, heart rate, and elevation data. This represents a substantial corpus of endurance training data spanning over 15 years, with **complete calendar coverage** - every day of the year has at least one recorded activity across the dataset.
 
