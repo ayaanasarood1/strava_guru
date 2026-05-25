@@ -474,6 +474,13 @@ def predict_marathon(csv_file, race_date_str, override_pr, pr_hours, pr_minutes,
         excluded_note = ""
 
     insights = f"""
+### Top 3 Predictive Features
+| Feature | Your Value | Why It Matters |
+|---------|------------|----------------|
+| Recent 4-Week Mileage | **{features['recent_mileage']:.1f} miles** | Most predictive (17%) - final training block |
+| Total Runs | **{int(features['total_runs'])} runs** | Training consistency (11%) |
+| Pace Variability | **{features['pace_std']:.2f}** | Training variety (7%) |
+
 ### PR Information
 - **Marathon PR:** {format_time(marathon_pr)} ({pr_source})
 - **PR Age:** {pr_age_years:.1f} years
