@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Marathon Time Predictor - Project Report</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; max-width: 850px; margin: 40px auto; padding: 20px; line-height: 1.6; font-size: 14px; }
+        h1 { border-bottom: 2px solid #333; padding-bottom: 10px; font-size: 24px; }
+        h2 { border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px; font-size: 20px; color: #2c5282; }
+        h3 { margin-top: 20px; font-size: 16px; }
+        table { border-collapse: collapse; width: 100%; margin: 15px 0; font-size: 13px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f5f5f5; }
+        code { background-color: #f5f5f5; padding: 2px 5px; border-radius: 3px; font-size: 13px; }
+        pre { background-color: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
+        hr { border: none; border-top: 1px solid #ccc; margin: 30px 0; }
+        li { margin: 5px 0; }
+        @media print {
+            body { margin: 0; padding: 20px; }
+            h2 { page-break-before: auto; }
+        }
+    </style>
+</head>
+<body>
+<h1>Marathon Time Predictor</h1>
+<h2>Advanced AI Models and Applications - Final Project Report</h2></p><p><strong>Student:</strong> Ayaan Asarood
+<strong>Date:</strong> May 25, 2026
+<strong>Course:</strong> Advanced AI Models and Applications</p><p><hr></p><p><h2>1. Project Overview</h2></p><p>This project predicts marathon finish times based on training data from Strava, a popular fitness tracking platform. Given a runner's training history from the 16 weeks before a race, the model predicts their expected marathon finish time.</p><p><strong>Problem Type:</strong> Regression
+<strong>Algorithm:</strong> Random Forest Regressor
+<strong>Deployment:</strong> Hugging Face Spaces
+<strong>Live Demo:</strong> https://huggingface.co/spaces/ayaanasarood/strava_guru</p><p><hr></p><p><h2>2. Dataset Used</h2></p><p><strong>Source:</strong> Custom dataset from Strava activity exports (teacher-approved)</p><p><h3>Dataset Scale</h3>
+<table>
+<tr><td>Metric</td><td>Value</td></tr>
+<tr><td>Total Running Activities</td><td>8,442</td></tr>
+<tr><td>Total Miles Tracked</td><td>62,335 miles</td></tr>
+<tr><td>Years of Training Data</td><td>15.4 years (2010-2026)</td></tr>
+<tr><td>Marathon Races (Training Set)</td><td>43</td></tr>
+<tr><td>Marathon Races (Holdout Test)</td><td>5</td></tr>
+</table></p><p>The dataset consists of real-world running data exported from Strava, including detailed activity logs with distance, duration, pace, heart rate, and elevation data. This represents a substantial corpus of endurance training data spanning over 15 years.</p><p><hr></p><p><h2>3. Input Features, Target Values, and Data Characteristics</h2></p><p><h3>Target Variable</h3>
+<li><strong>Marathon finish time</strong> in minutes (continuous, regression target)</li>
+<li>Range: 175 minutes (2:55) to 243 minutes (4:03)</li></p><p><h3>Input Features (33 total)</h3></p><p><strong>Volume Features:</strong>
+<li><code>total_runs</code> - Number of runs in training window</li>
+<li><code>total_mileage</code> - Total miles run</li>
+<li><code>avg_weekly_mileage</code> - Average miles per week</li>
+<li><code>peak_weekly_mileage</code> - Highest weekly mileage</li>
+<li><code>recent_mileage</code> - Miles in final 4 weeks before taper</li></p><p><strong>Quality Features:</strong>
+<li><code>long_run_count</code> - Runs of 15+ miles</li>
+<li><code>long_run_max_distance</code> - Longest single run</li>
+<li><code>tempo_run_count</code> - Runs at 7-8 min/mile pace</li>
+<li><code>speed_work_count</code> - Runs under 7 min/mile</li></p><p><strong>Pace Features:</strong>
+<li><code>avg_pace</code> - Average training pace</li>
+<li><code>pace_std</code> - Pace variability (training variety)</li>
+<li><code>recent_avg_pace</code> - Pace in final training block</li></p><p><strong>Heart Rate Features:</strong>
+<li><code>avg_hr</code> - Average heart rate</li>
+<li><code>zone1_pct</code> through <code>zone5_pct</code> - Time in each HR zone</li></p><p><strong>Historical Performance Features:</strong>
+<li><code>marathon_pr</code> - Personal record time</li>
+<li><code>prior_marathon_time</code> - Most recent marathon time</li>
+<li><code>pr_age_years</code> - How old the PR is</li>
+<li><code>pr_decay_factor</code> - PR weight based on age (3-year half-life)</li>
+<li><code>decayed_pr</code> - PR adjusted for staleness</li></p><p><h3>Data Balance</h3>
+The target variable (marathon time) is continuous and approximately normally distributed, with most times falling between 3:00 and 3:45.</p><p><hr></p><p><h2>4. Data Cleanup and Preprocessing</h2></p><p>Extensive data cleaning was required due to the messy nature of real-world fitness data.</p><p><h3>4.1 Activity Filtering</h3>
+<strong>Problem:</strong> The <code>is_marathon</code> flag detected activities by distance (25-27.5 miles) but included non-race activities.</p><p><strong>Filters Applied:</strong>
+<table>
+<tr><td>Filter</td><td>Removed</td><td>Example</td></tr>
+<tr><td>Training runs</td><td>Generic names like "Morning Run"</td><td>Azeem's 5 "Morning Run" marathons</td></tr>
+<tr><td>Trail runs</td><td>"trail" in name</td><td>Osman's 5:37 trail marathon</td></tr>
+<tr><td>Virtual marathons</td><td>"virtual" in name</td><td>Salman's 4:56 virtual NYC</td></tr>
+<tr><td>Pacing runs</td><td>"pacing" or "pacer"</td><td>Salman Khan's pacing run</td></tr>
+<tr><td>Invalid times</td><td>Outside 2-6 hour range</td><td>Walks/hikes at marathon distance</td></tr>
+<tr><td>Old races</td><td>More than 5 years old</td><td>LA Marathon 2012</td></tr>
+</table></p><p><h3>4.2 PR Calculation Adjustments</h3>
+<strong>Problem:</strong> Some PRs were set on downhill courses with significant elevation drop.</p><p><strong>Solution:</strong> Excluded known downhill courses from PR calculation:
+<li>Big Bear Marathon (-3,000 ft drop)</li>
+<li>Mesa Phoenix Marathon (-1,500 ft drop)</li>
+<li>REVEL series marathons</li>
+<li>St. George Marathon</li></p><p><h3>4.3 PR Decay Implementation</h3>
+<strong>Problem:</strong> Old PRs don't reflect current fitness.</p><p><strong>Solution:</strong> Implemented exponential decay with 3-year half-life:
+<pre><code>decay_factor = 0.5 ^ (pr_age_years / 3.0)
+decayed_pr = marathon_pr * decay_factor + 210 * (1 - decay_factor)
+</code></pre></p><p><h3>4.4 Feature Engineering</h3>
+<li>Parsed FIT files for detailed heart rate zone data</li>
+<li>Calculated training consistency metrics</li>
+<li>Created pace variability features</li>
+<li>Built recent form indicators (last 4 weeks)</li></p><p><hr></p><p><h2>5. Model Information</h2></p><p><h3>Algorithm Selection</h3>
+<strong>Model:</strong> Random Forest Regressor</p><p><strong>Why Random Forest:</strong>
+<li>Handles non-linear relationships well</li>
+<li>Robust to outliers in training data</li>
+<li>Provides feature importance for interpretability</li>
+<li>No need for feature scaling</li>
+<li>Works well with small datasets</li></p><p><h3>Hyperparameters</h3>
+<table>
+<tr><td>Parameter</td><td>Value</td></tr>
+<tr><td>n_estimators</td><td>100</td></tr>
+<tr><td>max_depth</td><td>10</td></tr>
+<tr><td>random_state</td><td>42</td></tr>
+</table></p><p><h3>Training Approach</h3>
+<li><strong>Unanchored prediction:</strong> Model predicts absolute marathon time directly</li>
+<li><strong>PR as a feature:</strong> Marathon PR included with decay factor</li>
+<li><strong>Cross-validation:</strong> 5-fold CV on training set</li>
+<li><strong>Holdout validation:</strong> Most recent race per runner held out</li></p><p><h3>Model Comparison</h3>
+<table>
+<tr><td>Model</td><td>CV MAE</td></tr>
+<tr><td>Ridge Regression</td><td>42.5 min</td></tr>
+<tr><td>Random Forest</td><td><strong>14.3 min</strong></td></tr>
+<tr><td>Gradient Boosting</td><td>14.6 min</td></tr>
+</table></p><p>Random Forest was selected as the best performing model.</p><p><hr></p><p><h2>6. Architecture Explanation</h2></p><p><h3>System Architecture</h3></p><p><pre><code>┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  Strava CSV     │────▶│  Feature         │────▶│  Random Forest  │
+│  Upload         │     │  Extraction      │     │  Model          │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+                                │                         │
+                                ▼                         ▼
+                        ┌──────────────────┐     ┌─────────────────┐
+                        │  PR Detection    │     │  Prediction     │
+                        │  (w/ downhill    │     │  (capped to     │
+                        │   filtering)     │     │   2:30-5:00)    │
+                        └──────────────────┘     └─────────────────┘
+</code></pre></p><p><h3>Key Design Decisions</h3></p><p><li><strong>16-week training window:</strong> Standard marathon training block length</li>
+<li><strong>7-day taper exclusion:</strong> Final week before race excluded (taper period)</li>
+<li><strong>PR decay:</strong> Older PRs weighted less (3-year half-life)</li>
+<li><strong>Downhill filtering:</strong> Known downhill courses excluded from PR</li>
+<li><strong>Prediction capping:</strong> Results bounded to realistic range (2:30-5:00)</li></p><p><hr></p><p><h2>7. Evaluation Metrics</h2></p><p><h3>Why MAE (Mean Absolute Error)?</h3>
+<li><strong>Interpretable:</strong> Error is in minutes, directly meaningful to runners</li>
+<li><strong>Robust:</strong> Less sensitive to outliers than MSE</li>
+<li><strong>Practical:</strong> A 5-minute error is understandable; 25 min² is not</li></p><p><h3>Results</h3></p><p><table>
+<tr><td>Metric</td><td>Value</td></tr>
+<tr><td>Cross-Validation MAE</td><td>14.3 minutes</td></tr>
+<tr><td>Holdout MAE</td><td><strong>5.0 minutes</strong></td></tr>
+</table></p><p><h3>Holdout Results by Runner</h3></p><p><table>
+<tr><td>Runner</td><td>Predicted</td><td>Actual</td><td>Error</td></tr>
+<tr><td>Osman</td><td>3:20</td><td>3:22</td><td>-2.9 min</td></tr>
+<tr><td>Salman</td><td>3:09</td><td>2:56</td><td>+13.3 min</td></tr>
+<tr><td>Azeem</td><td>3:24</td><td>3:24</td><td>-0.7 min</td></tr>
+<tr><td>Sara</td><td>3:27</td><td>3:25</td><td>+2.2 min</td></tr>
+<tr><td>Salman Khan</td><td>3:38</td><td>3:32</td><td>+5.7 min</td></tr>
+</table></p><p><h3>Top 3 Most Important Features</h3></p><p><table>
+<tr><td>Rank</td><td>Feature</td><td>Importance</td><td>Interpretation</td></tr>
+<tr><td>1</td><td>recent_mileage</td><td>17.0%</td><td>Final training block volume matters most</td></tr>
+<tr><td>2</td><td>total_runs</td><td>10.9%</td><td>Consistency of training frequency</td></tr>
+<tr><td>3</td><td>pace_std</td><td>6.7%</td><td>Training variety (polarized training)</td></tr>
+</table></p><p><hr></p><p><h2>8. Analysis of Model Performance</h2></p><p><h3>Strengths</h3>
+<li><strong>Excellent accuracy for typical runners:</strong> 3-5 minute error for most predictions</li>
+<li><strong>Handles PR staleness:</strong> Decay factor prevents over-reliance on old PRs</li>
+<li><strong>Auto-detects downhill courses:</strong> Prevents inflated PR detection</li></p><p><h3>Weaknesses</h3>
+<li><strong>Struggles with high-variance runners:</strong> Salman has times ranging from 2:55 to 4:03</li>
+<li><strong>Limited by training data size:</strong> 43 races is relatively small</li>
+<li><strong>Cannot predict sub-2:50 well:</strong> Few examples in training data</li></p><p><h3>Why Holdout MAE < CV MAE?</h3>
+The holdout MAE (5.0 min) is lower than CV MAE (14.3 min) because:
+<li>Holdout races are recent, representing current fitness</li>
+<li>Small holdout set (5 races) has lower variance</li>
+<li>CV includes harder-to-predict historical races</li></p><p><hr></p><p><h2>9. Limitations and Ethics</h2></p><p><h3>Technical Limitations</h3>
+<li><strong>Small training set:</strong> 43 marathon races from limited runners</li>
+<li><strong>Downhill detection:</strong> Cannot automatically detect all downhill courses</li>
+<li><strong>No weather adjustment:</strong> Temperature/humidity not incorporated</li>
+<li><strong>Heart rate data optional:</strong> Many activities lack HR data</li></p><p><h3>Ethical Considerations</h3>
+<li><strong>Privacy:</strong> Uses personal fitness data - users must consent to upload</li>
+<li><strong>Data ownership:</strong> Runners own their Strava data</li>
+<li><strong>No PII stored:</strong> App doesn't retain uploaded data</li>
+<li><strong>Bias:</strong> Model trained on specific demographic (recreational marathoners)</li></p><p><h3>Potential Misuse</h3>
+<li>Should not be used for medical decisions</li>
+<li>Predictions are estimates, not guarantees</li>
+<li>Cannot account for race-day factors (weather, illness, course)</li></p><p><hr></p><p><h2>10. Reflection</h2></p><p><h3>What I Learned</h3></p><p><strong>1. Data Quality > Model Complexity</strong>
+The biggest improvements came from better data filtering, not fancier algorithms. Removing trail runs, virtual marathons, and training runs improved MAE from 30+ minutes to under 15 minutes.</p><p><strong>2. Domain Knowledge Matters</strong>
+Understanding marathon training (taper periods, downhill courses, PR decay) was essential for feature engineering. The <code>decayed_pr</code> feature significantly improved predictions.</p><p><strong>3. Real-World Data is Messy</strong>
+Strava data includes everything from recovery jogs to ultramarathons labeled as "Morning Run." Robust filtering was the most time-consuming part of the project.</p><p><strong>4. Feature Engineering > Feature Count</strong>
+The 33 features were carefully designed based on running knowledge. Simple features like <code>recent_mileage</code> outperformed complex derived metrics.</p><p><strong>5. Deployment Challenges</strong>
+Supporting both raw Strava CSV and enriched CSV formats required careful handling of different column names and missing data.</p><p><h3>Future Improvements</h3>
+<li>Add weather data integration</li>
+<li>Include course elevation profiles</li>
+<li>Collect more training data</li>
+<li>Try deep learning with time-series features</li>
+<li>Add SHAP values for per-prediction explanations</li></p><p><hr></p><p><h2>Deliverables</h2></p><p><li><strong>GitHub Repository:</strong> https://github.com/ayaanasarood1/strava_guru</li>
+<li><strong>Hugging Face Demo:</strong> https://huggingface.co/spaces/ayaanasarood/strava_guru</li>
+<li><strong>LLM Conversation:</strong> Exported separately</li>
+<li><strong>This Report:</strong> PROJECT_REPORT.pdf</li></p><p><hr></p><p><h2>Appendix: Code Structure</h2></p><p><pre><code>strava_guru/
+├── huggingface_app/
+│   ├── app.py              # Gradio web application
+│   └── model.pkl           # Trained Random Forest model
+├── train_from_enriched_csvs.py  # Model training script
+├── create_enriched_activities_csv.py  # Data preprocessing
+├── DATA_FILTERING_NOTES.md      # Documentation of data issues
+└── PROJECT_REPORT.md            # This report
+</code></pre>
+
+</body>
+</html>

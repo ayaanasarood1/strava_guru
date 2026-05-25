@@ -187,6 +187,7 @@ def extract_features_for_race(df, race_date, prior_race_time=None, marathon_pr=N
     # If not provided, use 210 min (3:30) as default
     features['prior_marathon_time'] = prior_race_time if prior_race_time is not None else 210.0
     features['marathon_pr'] = marathon_pr if marathon_pr is not None else 210.0
+    # Note: pr_age_years and decayed_pr are added in load_runner_data where we have the PR date
 
     # Replace NaN with 0
     for k, v in features.items():
@@ -254,6 +255,7 @@ def load_runner_data(runner_id, config):
     skipped = []
     prior_race_time = None  # Track prior race time for each runner
     marathon_pr = None  # Track personal record (best time)
+    marathon_pr_date = None  # Track when PR was set
 
     for idx, row in marathons.iterrows():
         race_date = row['parsed_date']
@@ -280,6 +282,7 @@ def load_runner_data(runner_id, config):
                     if race_date_str not in excluded_dates:
                         if marathon_pr is None or actual_time < marathon_pr:
                             marathon_pr = actual_time
+                            marathon_pr_date = race_date
                 continue
 
         # Skip invalid times (too fast or too slow for a marathon)
@@ -292,6 +295,22 @@ def load_runner_data(runner_id, config):
         if features is None:
             continue
 
+        # Calculate PR age at time of this race (before PR gets updated)
+        if marathon_pr is not None and marathon_pr_date is not None:
+            pr_age_days = (race_date - marathon_pr_date).days
+            pr_age_years = max(0, pr_age_days / 365.25)
+        else:
+            pr_age_years = 0.0
+
+        # Decayed PR: older PRs carry less weight (half-life of 3 years)
+        decay_factor = 0.5 ** (pr_age_years / 3.0)
+        features['pr_age_years'] = pr_age_years
+        features['pr_decay_factor'] = decay_factor
+        if marathon_pr is not None:
+            features['decayed_pr'] = marathon_pr * decay_factor + 210.0 * (1 - decay_factor)
+        else:
+            features['decayed_pr'] = 210.0
+
         races.append({
             'runner_id': runner_id,
             'runner_name': config['display_name'],
@@ -300,7 +319,8 @@ def load_runner_data(runner_id, config):
             'race_name': activity_name,
             'actual_time_minutes': actual_time,
             'is_bonked': is_bonked,
-            'features': features
+            'features': features,
+            'marathon_pr_date': marathon_pr_date  # Track PR date at time of race
         })
 
         # Update prior race time and PR (only from non-bonked races)
@@ -312,6 +332,7 @@ def load_runner_data(runner_id, config):
             if race_date_str not in excluded_dates:
                 if marathon_pr is None or actual_time < marathon_pr:
                     marathon_pr = actual_time
+                    marathon_pr_date = race_date
 
     # Print skipped activities for transparency
     if skipped:
@@ -413,25 +434,9 @@ def main():
 
     X_train = np.array([[r['features'].get(k, 0) or 0 for k in feature_names] for r in training_races])
 
-    # Anchor = weighted average of prior race and PR
-    # PR weight decreases with age (older PRs are less relevant)
-    # Formula: anchor = prior_weight * prior + pr_weight * PR
-    # where pr_weight is higher for recent PRs
-    def calc_anchor(prior, pr):
-        if prior is None:
-            prior = 210
-        if pr is None:
-            pr = 210
-        # If prior was bad (slower than PR by > 20 min), trust PR more
-        # If prior was good (close to or faster than PR), trust prior more
-        if prior > pr + 20:  # Bad prior race
-            return 0.5 * prior + 0.5 * pr
-        else:  # Normal case
-            return 0.6 * prior + 0.4 * pr
-
+    # Anchor = PR only (simpler for users)
     y_train_anchor = np.array([
-        calc_anchor(r['features'].get('prior_marathon_time', 210),
-                   r['features'].get('marathon_pr', 210))
+        r['features'].get('marathon_pr', 210)
         for r in training_races
     ])
     y_train_actual = np.array([r['actual_time_minutes'] for r in training_races])
@@ -479,11 +484,8 @@ def main():
             X_test = np.array([[r['features'].get(k, 0) or 0 for k in feature_names]])
             prior_time = r['features'].get('prior_marathon_time', 210)
             marathon_pr = r['features'].get('marathon_pr', 210)
-            # Anchor = weighted average (same logic as training)
-            if prior_time > marathon_pr + 20:  # Bad prior race
-                anchor = 0.5 * prior_time + 0.5 * marathon_pr
-            else:  # Normal case
-                anchor = 0.6 * prior_time + 0.4 * marathon_pr
+            # Anchor = PR only (simpler for users)
+            anchor = marathon_pr
             delta_pred = best_model.predict(X_test)[0]
             # Cap delta to realistic range: max 5 min faster than anchor, 30 min slower
             delta_pred = max(-5, min(30, delta_pred))
@@ -495,26 +497,131 @@ def main():
 
             pred_str = f"{int(pred//60)}:{int(pred%60):02d}"
             actual_str = f"{int(actual//60)}:{int(actual%60):02d}"
-            anchor_str = f"{int(anchor//60)}:{int(anchor%60):02d}"
-            prior_str = f"{int(prior_time//60)}:{int(prior_time%60):02d}"
             pr_str = f"{int(marathon_pr//60)}:{int(marathon_pr%60):02d}"
 
             print(f"\n{r['runner_name']} ({r['race_date_str']}):")
-            print(f"  Prior: {prior_str}, PR: {pr_str} -> Anchor: {anchor_str}")
-            print(f"  Predicted: {pred_str} ({pred:.1f} min) [Anchor + {delta_pred:+.1f}]")
-            print(f"  Actual:    {actual_str} ({actual:.1f} min)")
-            print(f"  Error:     {'+' if error > 0 else ''}{error:.1f} min")
+            print(f"  PR (anchor): {pr_str}")
+            print(f"  Predicted:   {pred_str} ({pred:.1f} min) [PR + {delta_pred:+.1f}]")
+            print(f"  Actual:      {actual_str} ({actual:.1f} min)")
+            print(f"  Error:       {'+' if error > 0 else ''}{error:.1f} min")
 
         avg_error = np.mean(errors)
+        anchored_holdout_mae = avg_error
         print(f"\n{'=' * 80}")
         print(f"Holdout MAE: {avg_error:.1f} min")
         print(f"CV MAE:      {cv_results[best_name]['mae']:.1f} min")
         print(f"{'=' * 80}")
 
-    # Feature importance
+    # ================================================================================
+    # UNANCHORED APPROACH: PR as a decayed feature, predict absolute time
+    # ================================================================================
+    print(f"\n{'=' * 80}")
+    print("ALTERNATIVE: Unanchored Approach (PR as Decayed Feature)")
+    print(f"{'=' * 80}")
+
+    # Include marathon_pr, pr_age_years, decayed_pr, pr_decay_factor as features
+    unanchored_feature_names = sorted([k for k in training_races[0]['features'].keys()])
+    print(f"\nFeatures ({len(unanchored_feature_names)}) - predicting absolute time with PR decay features")
+
+    # Show the new PR-related features
+    pr_features = [f for f in unanchored_feature_names if 'pr' in f.lower() or 'prior' in f.lower()]
+    print(f"PR-related features: {pr_features}")
+
+    X_train_unanchored = np.array([[r['features'].get(k, 0) or 0 for k in unanchored_feature_names]
+                                    for r in training_races])
+    y_train_absolute = np.array([r['actual_time_minutes'] for r in training_races])
+
+    print(f"Training set shape: {X_train_unanchored.shape}")
+    print(f"Target: absolute time (avg: {y_train_absolute.mean():.1f} min)")
+
+    # Train models for unanchored approach
+    print(f"\nTraining Models (5-Fold CV) - Predicting Absolute Time")
+
+    unanchored_models = {
+        'Ridge': Ridge(alpha=1.0),
+        'Random Forest': RandomForestRegressor(n_estimators=100, max_depth=10, random_state=42),
+        'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, max_depth=5, random_state=42)
+    }
+
+    unanchored_cv_results = {}
+    for name, model in unanchored_models.items():
+        cv_scores = cross_val_score(model, X_train_unanchored, y_train_absolute,
+                                    cv=min(5, len(training_races)),
+                                    scoring='neg_mean_absolute_error')
+        mae = -cv_scores.mean()
+        unanchored_cv_results[name] = {'mae': mae, 'model': model}
+        print(f"  {name}: CV MAE = {mae:.1f} min")
+
+    # Select best unanchored model
+    best_unanchored_name = min(unanchored_cv_results.keys(), key=lambda k: unanchored_cv_results[k]['mae'])
+    best_unanchored_model = unanchored_cv_results[best_unanchored_name]['model']
+
+    print(f"\nBest unanchored model: {best_unanchored_name} (CV MAE = {unanchored_cv_results[best_unanchored_name]['mae']:.1f} min)")
+
+    # Train on full training set
+    best_unanchored_model.fit(X_train_unanchored, y_train_absolute)
+
+    # Holdout validation for unanchored approach
+    if holdout_races:
+        print(f"\n{'=' * 80}")
+        print("Unanchored Holdout Validation Results")
+        print(f"{'=' * 80}")
+
+        unanchored_errors = []
+        for r in holdout_races:
+            X_test = np.array([[r['features'].get(k, 0) or 0 for k in unanchored_feature_names]])
+            marathon_pr = r['features'].get('marathon_pr', 210)
+            pr_age = r['features'].get('pr_age_years', 0)
+            decay_factor = r['features'].get('pr_decay_factor', 1.0)
+            decayed_pr = r['features'].get('decayed_pr', marathon_pr)
+
+            pred = best_unanchored_model.predict(X_test)[0]
+            # Cap prediction to realistic range (2:30 to 5:00)
+            pred = max(150, min(300, pred))
+
+            actual = r['actual_time_minutes']
+            error = pred - actual
+            unanchored_errors.append(abs(error))
+
+            pred_str = f"{int(pred//60)}:{int(pred%60):02d}"
+            actual_str = f"{int(actual//60)}:{int(actual%60):02d}"
+            pr_str = f"{int(marathon_pr//60)}:{int(marathon_pr%60):02d}"
+
+            print(f"\n{r['runner_name']} ({r['race_date_str']}):")
+            print(f"  PR: {pr_str} (age: {pr_age:.1f}y, decay: {decay_factor:.2f})")
+            print(f"  Predicted:   {pred_str} ({pred:.1f} min)")
+            print(f"  Actual:      {actual_str} ({actual:.1f} min)")
+            print(f"  Error:       {'+' if error > 0 else ''}{error:.1f} min")
+
+        unanchored_avg_error = np.mean(unanchored_errors)
+        print(f"\n{'=' * 80}")
+        print(f"Unanchored Holdout MAE: {unanchored_avg_error:.1f} min")
+        print(f"Unanchored CV MAE:      {unanchored_cv_results[best_unanchored_name]['mae']:.1f} min")
+        print(f"{'=' * 80}")
+
+    # ================================================================================
+    # COMPARISON SUMMARY
+    # ================================================================================
+    print(f"\n{'=' * 80}")
+    print("COMPARISON: Anchored vs Unanchored Approach")
+    print(f"{'=' * 80}")
+    print(f"\n  Anchored (PR-only, predict delta):")
+    print(f"    CV MAE:      {cv_results[best_name]['mae']:.1f} min")
+    if holdout_races:
+        print(f"    Holdout MAE: {anchored_holdout_mae:.1f} min")
+    print(f"\n  Unanchored (PR decay feature, predict absolute):")
+    print(f"    CV MAE:      {unanchored_cv_results[best_unanchored_name]['mae']:.1f} min")
+    if holdout_races:
+        print(f"    Holdout MAE: {unanchored_avg_error:.1f} min")
+
+    if holdout_races:
+        winner = "Anchored" if anchored_holdout_mae < unanchored_avg_error else "Unanchored"
+        print(f"\n  Winner (by holdout): {winner}")
+
+    # Feature importance - Anchored
     if hasattr(best_model, 'feature_importances_'):
         print(f"\n{'=' * 80}")
-        print("Top 10 Feature Importances")
+        print("Top 10 Feature Importances (Anchored)")
         print(f"{'=' * 80}")
 
         importances = list(zip(feature_names, best_model.feature_importances_))
@@ -523,20 +630,50 @@ def main():
         for name, imp in importances[:10]:
             print(f"  {name}: {imp:.3f}")
 
-    # Save model
+    # Feature importance - Unanchored
+    if hasattr(best_unanchored_model, 'feature_importances_'):
+        print(f"\n{'=' * 80}")
+        print("Top 10 Feature Importances (Unanchored)")
+        print(f"{'=' * 80}")
+
+        importances = list(zip(unanchored_feature_names, best_unanchored_model.feature_importances_))
+        importances.sort(key=lambda x: x[1], reverse=True)
+
+        for name, imp in importances[:10]:
+            print(f"  {name}: {imp:.3f}")
+
+    # Save UNANCHORED model (better holdout performance)
     model_path = '/Users/osman/PycharmProjects/strava_guru/race_time_model_enriched.pkl'
     with open(model_path, 'wb') as f:
         pickle.dump({
-            'model': best_model,
-            'feature_names': feature_names,
-            'model_type': best_name,
-            'cv_mae': cv_results[best_name]['mae'],
-            'holdout_mae': np.mean(errors) if holdout_races else None,
+            'model': best_unanchored_model,
+            'feature_names': unanchored_feature_names,
+            'model_type': best_unanchored_name,
+            'cv_mae': unanchored_cv_results[best_unanchored_name]['mae'],
+            'holdout_mae': unanchored_avg_error if holdout_races else None,
             'n_training_races': len(training_races),
-            'n_features': len(feature_names)
+            'n_features': len(unanchored_feature_names),
+            'approach': 'unanchored',
+            'description': 'Predicts absolute time with PR decay features'
         }, f)
 
-    print(f"\nModel saved to: {model_path}")
+    print(f"\nUnanchored model saved to: {model_path}")
+
+    # Also save to huggingface_app directory
+    hf_model_path = '/Users/osman/PycharmProjects/strava_guru/huggingface_app/model.pkl'
+    with open(hf_model_path, 'wb') as f:
+        pickle.dump({
+            'model': best_unanchored_model,
+            'feature_names': unanchored_feature_names,
+            'model_type': best_unanchored_name,
+            'cv_mae': unanchored_cv_results[best_unanchored_name]['mae'],
+            'holdout_mae': unanchored_avg_error if holdout_races else None,
+            'n_training_races': len(training_races),
+            'n_features': len(unanchored_feature_names),
+            'approach': 'unanchored',
+            'description': 'Predicts absolute time with PR decay features'
+        }, f)
+    print(f"Model also saved to: {hf_model_path}")
 
 
 if __name__ == '__main__':
