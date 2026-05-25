@@ -28,7 +28,6 @@ This project predicts marathon finish times based on training data from Strava, 
 | **Total Activities** | **12,096** |
 | **Total Distance** | **76,942 miles** |
 | **Total Time** | **11,006 hours** |
-| Years of Data | 15.4 years (2010-2026) |
 | Calendar Days Covered | 366/366 (100%) |
 | Running Activities (used for model) | 8,442 |
 | Marathon Races (Training Set) | 43 |
